@@ -1,0 +1,13 @@
+name: mch
+version: '${project.version}'
+main: ca.bkaw.mch.bukkit.MchBukkit
+api-version: 1.19
+commands:
+  mch:
+    description: Command to interact with mch
+    usage: |
+      mch
+      mch version
+      mch commit <commit message>
+      mch cat <type id> <hash>
+    permission: mch.command
