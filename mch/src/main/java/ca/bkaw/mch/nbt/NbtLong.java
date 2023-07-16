@@ -24,4 +24,8 @@ public class NbtLong implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeLong(this.value);
     }
+
+    public long getValue() {
+        return this.value;
+    }
 }

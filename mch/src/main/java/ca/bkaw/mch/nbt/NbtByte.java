@@ -24,4 +24,8 @@ public class NbtByte implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeByte(this.value);
     }
+
+    public byte getValue() {
+        return this.value;
+    }
 }

@@ -31,4 +31,8 @@ public class NbtIntArray implements NbtTag {
             dataOutput.writeInt(integer);
         }
     }
+
+    public int[] getValue() {
+        return this.value;
+    }
 }

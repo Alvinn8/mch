@@ -44,4 +44,12 @@ public class NbtList implements NbtTag {
             tag.write(dataOutput);
         }
     }
+
+    public byte getListTypeId() {
+        return this.listTypeId;
+    }
+
+    public NbtTag[] getValue() {
+        return this.value;
+    }
 }

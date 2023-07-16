@@ -24,4 +24,8 @@ public class NbtFloat implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeFloat(this.value);
     }
+
+    public float getValue() {
+        return this.value;
+    }
 }

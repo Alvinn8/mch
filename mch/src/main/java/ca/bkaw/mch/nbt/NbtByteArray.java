@@ -27,4 +27,8 @@ public class NbtByteArray implements NbtTag {
         dataOutput.writeInt(this.value.length);
         dataOutput.write(this.value);
     }
+
+    public byte[] getValue() {
+        return this.value;
+    }
 }

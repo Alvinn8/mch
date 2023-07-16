@@ -24,4 +24,8 @@ public class NbtShort implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeShort(this.value);
     }
+
+    public short getValue() {
+        return this.value;
+    }
 }

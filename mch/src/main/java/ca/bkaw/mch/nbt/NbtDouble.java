@@ -24,4 +24,8 @@ public class NbtDouble implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeDouble(this.value);
     }
+
+    public double getValue() {
+        return this.value;
+    }
 }

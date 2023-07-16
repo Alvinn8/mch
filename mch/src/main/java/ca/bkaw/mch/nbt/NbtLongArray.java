@@ -31,4 +31,8 @@ public class NbtLongArray implements NbtTag {
             dataOutput.writeLong(l);
         }
     }
+
+    public long[] getValue() {
+        return this.value;
+    }
 }

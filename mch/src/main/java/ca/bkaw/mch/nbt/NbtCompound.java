@@ -1,5 +1,7 @@
 package ca.bkaw.mch.nbt;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -42,5 +44,10 @@ public class NbtCompound implements NbtTag {
         }
         // End of compound
         dataOutput.writeByte(NbtEnd.ID);
+    }
+
+    @Nullable
+    public NbtTag get(String key) {
+        return this.data.get(key);
     }
 }

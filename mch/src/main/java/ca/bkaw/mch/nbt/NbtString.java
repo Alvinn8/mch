@@ -24,4 +24,8 @@ public class NbtString implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeUTF(this.value);
     }
+
+    public String getValue() {
+        return this.value;
+    }
 }
