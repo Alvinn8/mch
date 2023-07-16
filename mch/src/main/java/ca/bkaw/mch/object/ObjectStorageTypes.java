@@ -58,8 +58,6 @@ public class ObjectStorageTypes {
 
     /**
      * Stores a chunk in a region file.
-     * <p>
-     * Chunks reference chunk sections and chunk nbt.
      */
     public static final ObjectStorageType<Chunk> CHUNK
         = new ObjectStorageType<>("chunk", Chunk::new);

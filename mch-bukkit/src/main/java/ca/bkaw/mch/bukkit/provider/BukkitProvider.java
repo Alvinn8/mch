@@ -82,4 +82,9 @@ public class BukkitProvider implements Provider {
         Path regionFilePath = regionFolder.resolve(regionFile);
         return Sha1.ofFile(regionFilePath);
     }
+
+    @Override
+    public byte[] getChunkBytes(String dimension, String regionFile, int relativeChunkX, int relativeChunkY) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 }

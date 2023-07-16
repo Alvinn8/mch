@@ -34,4 +34,16 @@ public interface Provider {
      * @throws IOException If an I/O error occurs.
      */
     Sha1 getRegionFileHash(String dimension, String regionFile) throws IOException;
+
+    /**
+     * Get the uncompressed nbt bytes of the chunk.
+     *
+     * @param dimension The dimension.
+     * @param regionFile The region file the chunk is in.
+     * @param relativeChunkX The x offset in the region file of the chunk.
+     * @param relativeChunkY The y offset in the region file of the chunk.
+     * @return The bytes.
+     * @throws IOException If an I/O error occurs.
+     */
+    byte[] getChunkBytes(String dimension, String regionFile, int relativeChunkX, int relativeChunkY) throws IOException;
 }

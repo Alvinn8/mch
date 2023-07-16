@@ -39,7 +39,7 @@ public class MchCommand implements CommandExecutor {
             case "commit" -> {
                 return this.commit(sender, args);
             }
-            case "cat" -> {
+            case "cat-file", "cat" -> {
                 return this.cat(sender, args);
             }
         }
