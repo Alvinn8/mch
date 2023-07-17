@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A compound tag that holds string keys mapped to nbt tags.
@@ -67,9 +68,22 @@ public class NbtCompound implements NbtTag {
         this.data.remove(key);
     }
 
+    public void set(String key, NbtTag tag) {
+        this.data.put(key, tag);
+    }
+
+    /**
+     * Merge the {@code other} compound into this compound.
+     *
+     * @param other The compound to merge into this one.
+     */
+    public void merge(NbtCompound other) {
+        this.data.putAll(other.data);
+    }
+
     @Override
     public String toString() {
-        return "NbtCompound" + data;
+        return "NbtCompound" + this.data;
     }
 
     @Override
