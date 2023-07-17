@@ -28,4 +28,23 @@ public class NbtShort implements NbtTag {
     public short getValue() {
         return this.value;
     }
+
+    @Override
+    public String toString() {
+        return "NbtShort{" + this.value + '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtShort other = (NbtShort) tag;
+        return other.value == this.value ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtShort.class) {
+            return false;
+        }
+        return this.value == ((NbtShort) obj).value;
+    }
 }

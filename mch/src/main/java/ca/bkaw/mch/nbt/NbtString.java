@@ -3,6 +3,7 @@ package ca.bkaw.mch.nbt;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
 public class NbtString implements NbtTag {
 
@@ -27,5 +28,24 @@ public class NbtString implements NbtTag {
 
     public String getValue() {
         return this.value;
+    }
+
+    @Override
+    public String toString() {
+        return "NbtString{" + this.value + '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtString other = (NbtString) tag;
+        return Objects.equals(other.value, this.value) ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtString.class) {
+            return false;
+        }
+        return Objects.equals(this.value, ((NbtString) obj).value);
     }
 }

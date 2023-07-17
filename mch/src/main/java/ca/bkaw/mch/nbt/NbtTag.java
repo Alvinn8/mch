@@ -34,6 +34,25 @@ public interface NbtTag {
     void write(DataOutput dataOutput) throws IOException;
 
     /**
+     * Create a comparison report that recursively compares the current tag with the
+     * other one and produces a human-readable string that describes whether the tags
+     * are equal or different and in short describes the changes.
+     *
+     * @param other The other tag.
+     * @return The comparison report.
+     */
+    String createCompareReport(NbtTag other);
+
+    /**
+     * Compare this nbt tag to the other nbt tag.
+     *
+     * @param other The other tag.
+     * @return Whether the tags are equal.
+     */
+    @Override
+    boolean equals(Object other);
+
+    /**
      * Create a new empty nbt tag by tag id.
      * <p>
      * If the id is {@code 0} the {@link NbtEnd#INSTANCE} instance is returned.
@@ -57,5 +76,35 @@ public interface NbtTag {
         else if (id == NbtLongArray.ID) return new NbtLongArray();
 
         throw new IllegalArgumentException("Unknown nbt tag type id: " + id);
+    }
+
+    /**
+     * Read nbt from a {@link DataInput}.
+     *
+     * @param dataInput The data input to read from.
+     * @return The tag.
+     * @throws IOException If an I/O error occurs.
+     */
+    static NbtTag readTag(DataInput dataInput) throws IOException {
+        byte tagId = dataInput.readByte();
+        dataInput.readUTF();
+        NbtTag tag = NbtTag.fromId(tagId);
+        tag.read(dataInput);
+        return tag;
+    }
+
+    /**
+     * Read nbt where the root tag must be a compound tag.
+     *
+     * @param dataInput The data input to read from.
+     * @return The nbt compound.
+     * @throws IOException If an I/O error occurs.
+     */
+    static NbtCompound readCompound(DataInput dataInput) throws IOException {
+        NbtTag tag = readTag(dataInput);
+        if (tag instanceof NbtCompound nbtCompound) {
+            return nbtCompound;
+        }
+        throw new RuntimeException("Root tag must be a compound tag.");
     }
 }

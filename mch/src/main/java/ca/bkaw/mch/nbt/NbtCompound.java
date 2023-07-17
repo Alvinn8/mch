@@ -50,4 +50,34 @@ public class NbtCompound implements NbtTag {
     public NbtTag get(String key) {
         return this.data.get(key);
     }
+
+    public void remove(String key) {
+        this.data.remove(key);
+    }
+
+    @Override
+    public String toString() {
+        return "NbtCompound" + data;
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtCompound other = (NbtCompound) tag;
+        StringBuilder str = new StringBuilder("Compound compare report:\n");
+        for (Map.Entry<String, NbtTag> entry : this.data.entrySet()) {
+            String key = entry.getKey();
+            NbtTag thisTag = entry.getValue();
+            NbtTag otherTag = other.get(key);
+            str.append(key).append(": ").append(thisTag.createCompareReport(otherTag)).append('\n');
+        }
+        return str.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtCompound.class) {
+            return false;
+        }
+        return this.data.equals(((NbtCompound) obj).data);
+    }
 }

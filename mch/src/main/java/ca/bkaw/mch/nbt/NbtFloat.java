@@ -28,4 +28,23 @@ public class NbtFloat implements NbtTag {
     public float getValue() {
         return this.value;
     }
+
+    @Override
+    public String toString() {
+        return "NbtFloat{" + this.value + '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtFloat other = (NbtFloat) tag;
+        return other.value == this.value ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtFloat.class) {
+            return false;
+        }
+        return this.value == ((NbtFloat) obj).value;
+    }
 }

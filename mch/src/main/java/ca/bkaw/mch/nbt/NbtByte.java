@@ -28,4 +28,23 @@ public class NbtByte implements NbtTag {
     public byte getValue() {
         return this.value;
     }
+
+    @Override
+    public String toString() {
+        return "NbtByte{" + this.value + '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtByte other = (NbtByte) tag;
+        return other.value == this.value ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtByte.class) {
+            return false;
+        }
+        return this.value == ((NbtByte) obj).value;
+    }
 }

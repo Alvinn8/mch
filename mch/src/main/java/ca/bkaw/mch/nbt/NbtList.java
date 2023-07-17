@@ -3,6 +3,7 @@ package ca.bkaw.mch.nbt;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class NbtList implements NbtTag {
 
@@ -51,5 +52,37 @@ public class NbtList implements NbtTag {
 
     public NbtTag[] getValue() {
         return this.value;
+    }
+
+    @Override
+    public String toString() {
+        return "NbtList{" +
+            "listTypeId=" + listTypeId +
+            ", value=" + Arrays.toString(value) +
+            '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtList other = (NbtList) tag;
+        if (this.value.length != other.value.length) {
+            return "DIFF (" + this.value.length + " tags, " + other.value.length + " tags)";
+        }
+        StringBuilder str = new StringBuilder("List compare report:\n");
+        for (int i = 0; i < this.value.length; i++) {
+            NbtTag thisTag = this.value[i];
+            NbtTag otherTag = other.value[i];
+            str.append(i).append(": ").append(thisTag.createCompareReport(otherTag)).append('\n');
+        }
+        return str.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtList.class) {
+            return false;
+        }
+        NbtList other = (NbtList) obj;
+        return this.listTypeId == other.listTypeId && Arrays.equals(this.value, other.value);
     }
 }

@@ -1,5 +1,6 @@
-run/
 .gradle
+run
+research
 
 ### IntelliJ IDEA ###
 .idea/

@@ -28,4 +28,9 @@ public class NbtEnd implements NbtTag {
     public void write(DataOutput dataOutput) throws IOException {
         throw new UnsupportedOperationException("End tags do not have a payload");
     }
+
+    @Override
+    public String createCompareReport(NbtTag other) {
+        throw new UnsupportedOperationException("End tags can not be compared");
+    }
 }

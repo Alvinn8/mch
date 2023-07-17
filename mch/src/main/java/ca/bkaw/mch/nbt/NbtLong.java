@@ -28,4 +28,23 @@ public class NbtLong implements NbtTag {
     public long getValue() {
         return this.value;
     }
+
+    @Override
+    public String toString() {
+        return "NbtLong{" + this.value + '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtLong other = (NbtLong) tag;
+        return other.value == this.value ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtLong.class) {
+            return false;
+        }
+        return this.value == ((NbtLong) obj).value;
+    }
 }

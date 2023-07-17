@@ -28,4 +28,23 @@ public class NbtDouble implements NbtTag {
     public double getValue() {
         return this.value;
     }
+
+    @Override
+    public String toString() {
+        return "NbtDouble{" + this.value + '}';
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtDouble other = (NbtDouble) tag;
+        return other.value == this.value ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtDouble.class) {
+            return false;
+        }
+        return this.value == ((NbtDouble) obj).value;
+    }
 }

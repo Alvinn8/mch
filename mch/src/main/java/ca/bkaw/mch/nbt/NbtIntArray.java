@@ -3,6 +3,7 @@ package ca.bkaw.mch.nbt;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class NbtIntArray implements NbtTag {
 
@@ -34,5 +35,24 @@ public class NbtIntArray implements NbtTag {
 
     public int[] getValue() {
         return this.value;
+    }
+
+    @Override
+    public String toString() {
+        return "NbtIntArray{" + this.value.length + " ints}";
+    }
+
+    @Override
+    public String createCompareReport(NbtTag tag) {
+        NbtIntArray other = (NbtIntArray) tag;
+        return Arrays.equals(other.value, this.value) ? "EQUAL" : "DIFF (" + this.value.length + " bytes, " + other.value.length + " bytes )";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj.getClass() != NbtIntArray.class) {
+            return false;
+        }
+        return Arrays.equals(this.value, ((NbtIntArray) obj).value);
     }
 }
