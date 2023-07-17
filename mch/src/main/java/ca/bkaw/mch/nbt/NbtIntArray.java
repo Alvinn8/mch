@@ -55,4 +55,9 @@ public class NbtIntArray implements NbtTag {
         }
         return Arrays.equals(this.value, ((NbtIntArray) obj).value);
     }
+
+    @Override
+    public int byteSize() {
+        return 4 + this.value.length * 4;
+    }
 }

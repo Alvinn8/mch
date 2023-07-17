@@ -47,4 +47,9 @@ public class NbtByte implements NbtTag {
         }
         return this.value == ((NbtByte) obj).value;
     }
+
+    @Override
+    public int byteSize() {
+        return 1;
+    }
 }

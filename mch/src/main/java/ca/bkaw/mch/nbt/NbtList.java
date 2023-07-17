@@ -68,11 +68,16 @@ public class NbtList implements NbtTag {
         if (this.value.length != other.value.length) {
             return "DIFF (" + this.value.length + " tags, " + other.value.length + " tags)";
         }
-        StringBuilder str = new StringBuilder("List compare report:\n");
+        StringBuilder str = new StringBuilder("List compare report (");
+        str.append(this.equals(tag) ? "EQUAL" : "DIFF");
+        str.append("):\n");
         for (int i = 0; i < this.value.length; i++) {
             NbtTag thisTag = this.value[i];
             NbtTag otherTag = other.value[i];
             str.append(i).append(": ").append(thisTag.createCompareReport(otherTag)).append('\n');
+        }
+        if (this.value.length == 0) {
+            str.append("(length 0)");
         }
         return str.toString();
     }
@@ -84,5 +89,14 @@ public class NbtList implements NbtTag {
         }
         NbtList other = (NbtList) obj;
         return this.listTypeId == other.listTypeId && Arrays.equals(this.value, other.value);
+    }
+
+    @Override
+    public int byteSize() {
+        int count = 5;
+        for (NbtTag tag : this.value) {
+            count += tag.byteSize();
+        }
+        return count;
     }
 }

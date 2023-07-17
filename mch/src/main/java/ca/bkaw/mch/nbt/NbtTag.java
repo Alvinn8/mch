@@ -53,6 +53,13 @@ public interface NbtTag {
     boolean equals(Object other);
 
     /**
+     * Get the amount of bytes required to store this nbt tag.
+     *
+     * @return The amount of bytes.
+     */
+    int byteSize();
+
+    /**
      * Create a new empty nbt tag by tag id.
      * <p>
      * If the id is {@code 0} the {@link NbtEnd#INSTANCE} instance is returned.

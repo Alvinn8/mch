@@ -3,6 +3,7 @@ package ca.bkaw.mch.nbt;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public class NbtString implements NbtTag {
@@ -47,5 +48,10 @@ public class NbtString implements NbtTag {
             return false;
         }
         return Objects.equals(this.value, ((NbtString) obj).value);
+    }
+
+    @Override
+    public int byteSize() {
+        return 2 + this.value.getBytes(StandardCharsets.UTF_8).length;
     }
 }

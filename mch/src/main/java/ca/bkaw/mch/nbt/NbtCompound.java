@@ -1,10 +1,13 @@
 package ca.bkaw.mch.nbt;
 
+import ca.bkaw.mch.test.TestMain;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -51,6 +54,15 @@ public class NbtCompound implements NbtTag {
         return this.data.get(key);
     }
 
+    @NotNull
+    public NbtCompound getCompound(String key) {
+        NbtTag tag = this.get(key);
+        if (tag instanceof NbtCompound compound) {
+            return compound;
+        }
+        throw new RuntimeException("Expected compound as tag " + key + " but found " + tag);
+    }
+
     public void remove(String key) {
         this.data.remove(key);
     }
@@ -63,12 +75,24 @@ public class NbtCompound implements NbtTag {
     @Override
     public String createCompareReport(NbtTag tag) {
         NbtCompound other = (NbtCompound) tag;
-        StringBuilder str = new StringBuilder("Compound compare report:\n");
+        StringBuilder str = new StringBuilder("Compound compare report (");
+        str.append(this.equals(tag) ? "EQUAL" : "DIFF");
+        str.append(", ");
+        str.append(TestMain.formatBytes(this.byteSize()));
+        str.append("):\n");
         for (Map.Entry<String, NbtTag> entry : this.data.entrySet()) {
             String key = entry.getKey();
             NbtTag thisTag = entry.getValue();
             NbtTag otherTag = other.get(key);
-            str.append(key).append(": ").append(thisTag.createCompareReport(otherTag)).append('\n');
+            str.append(key).append(": ");
+            if (otherTag == null) {
+                str.append("CREATED\n");
+            } else {
+                str.append(thisTag.createCompareReport(otherTag)).append('\n');
+            }
+        }
+        if (this.data.size() == 0) {
+            str.append("(length 0, length ").append(other.data.size()).append(")");
         }
         return str.toString();
     }
@@ -79,5 +103,16 @@ public class NbtCompound implements NbtTag {
             return false;
         }
         return this.data.equals(((NbtCompound) obj).data);
+    }
+
+    @Override
+    public int byteSize() {
+        int count = 0;
+        for (Map.Entry<String, NbtTag> entry : this.data.entrySet()) {
+            count += 1;
+            count += entry.getKey().getBytes(StandardCharsets.UTF_8).length;
+            count += entry.getValue().byteSize();
+        }
+        return count;
     }
 }

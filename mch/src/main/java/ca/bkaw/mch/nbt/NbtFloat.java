@@ -47,4 +47,9 @@ public class NbtFloat implements NbtTag {
         }
         return this.value == ((NbtFloat) obj).value;
     }
+
+    @Override
+    public int byteSize() {
+        return 4;
+    }
 }

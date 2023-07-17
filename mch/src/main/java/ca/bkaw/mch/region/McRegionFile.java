@@ -29,13 +29,20 @@ public class McRegionFile implements AutoCloseable {
         return (chunkX & 31) + (chunkZ & 31) * 32;
     }
 
+    public boolean hasChunk(int chunkX, int chunkZ) {
+        return this.locations[getIndex(chunkX, chunkZ)] != 0;
+    }
+
     public DataInputStream readChunk(int chunkX, int chunkZ) throws IOException {
         int index = getIndex(chunkX, chunkZ);
 
+        int location = this.locations[index];
+        if (location == 0) {
+            throw new RuntimeException("The chunk " + chunkX + " " + chunkZ + " is empty in this region file.");
+        }
         // The location holds has two different values
         // 0 1 2   3
         // offset  sector count
-        int location = this.locations[index];
         int offsetSector = location >> 8 & 0x00ffffff; // first 3 bytes
         int sectorLength = location & 0x000000ff; // 4th byte
 

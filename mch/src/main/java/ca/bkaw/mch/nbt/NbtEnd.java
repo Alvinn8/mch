@@ -33,4 +33,9 @@ public class NbtEnd implements NbtTag {
     public String createCompareReport(NbtTag other) {
         throw new UnsupportedOperationException("End tags can not be compared");
     }
+
+    @Override
+    public int byteSize() {
+        return 0;
+    }
 }
