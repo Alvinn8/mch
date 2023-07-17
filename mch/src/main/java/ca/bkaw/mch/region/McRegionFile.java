@@ -2,21 +2,20 @@ package ca.bkaw.mch.region;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.nio.file.Path;
 import java.util.zip.InflaterInputStream;
 
 public class McRegionFile implements AutoCloseable {
     public static final int CHUNK_COUNT = 32 * 32;
     public static final int SECTOR_SIZE = 4096;
 
-    private final RandomAccessFile file;
+    private final RandomAccessPath file;
     private final int[] locations = new int[CHUNK_COUNT];
     private final int[] lastModified = new int[CHUNK_COUNT];
 
-    public McRegionFile(File file) throws IOException {
-        this.file = new RandomAccessFile(file, "r");
+    public McRegionFile(Path path) throws IOException {
+        this.file = RandomAccessPath.of(path);
         for (int i = 0; i < CHUNK_COUNT; i++) {
             this.locations[i] = this.file.readInt();
         }

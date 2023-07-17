@@ -23,7 +23,7 @@ public class TestMain {
     public static void main4(String[] args) throws IOException {
         PrintStream stream = new PrintStream(new FileOutputStream("research-data/compare.txt"));
 
-        McRegionFile region1 = new McRegionFile(Path.of("research-data/svcraft7/2021-6-28/world/region/r.0.0.mca").toFile());
+        McRegionFile region1 = new McRegionFile(Path.of("research-data/svcraft7/2021-6-28/world/region/r.0.0.mca"));
 
         for (int x = 0; x < 32; x++) {
             for (int z = 0; z < 32; z++) {
@@ -39,8 +39,8 @@ public class TestMain {
             long start = System.currentTimeMillis();
             Path region2Path = Path.of("research-data/svcraft7/2021-6-29/world/region", region1Path.getFileName().toString());
 
-            McRegionFile region1 = new McRegionFile(region1Path.toFile());
-            McRegionFile region2 = new McRegionFile(region2Path.toFile());
+            McRegionFile region1 = new McRegionFile(region1Path);
+            McRegionFile region2 = new McRegionFile(region2Path);
 
             stream.println("=== REGION " + region1Path.getFileName());
             System.out.println("Scanning " + region1Path.getFileName());
