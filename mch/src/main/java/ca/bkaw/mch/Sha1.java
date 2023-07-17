@@ -1,12 +1,14 @@
 package ca.bkaw.mch;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 /**
  * A SHA-1 hash.
@@ -58,8 +60,15 @@ public class Sha1 {
      */
     public static Sha1 ofFile(Path path) throws IOException {
         MessageDigest md = getMessageDigest();
-        byte[] digest = md.digest(Files.readAllBytes(path));
-        return new Sha1(digest);
+        try (InputStream stream = Files.newInputStream(path)) {
+            byte[] buffer = new byte[8192];
+            int i;
+            while ((i = stream.read(buffer)) != -1) {
+                md.update(buffer, 0, i);
+            }
+            byte[] digest = md.digest();
+            return new Sha1(digest);
+        }
     }
 
     /**
@@ -109,5 +118,25 @@ public class Sha1 {
 
     public byte[] getBytes() {
         return this.bytes;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (other == null || this.getClass() != other.getClass()) return false;
+
+        Sha1 sha1 = (Sha1) other;
+
+        return Arrays.equals(this.bytes, sha1.bytes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(this.bytes);
+    }
+
+    @Override
+    public String toString() {
+        return "Sha1{" + this.asHex() + '}';
     }
 }
