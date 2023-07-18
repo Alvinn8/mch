@@ -8,7 +8,12 @@ import java.util.Map;
 
 /**
  * An index that maps a version number identifier to the offset of the object.
+ *
+ * @deprecated Indexes might be something we want in the future, but they are
+ * currently unused in favor of reading all data into java objects for simplicity.
+ * "Make it work, then make it fast".
  */
+@Deprecated
 public class VersionNumberIndex {
     private final Map<Integer, Integer> map;
 
@@ -48,7 +53,7 @@ public class VersionNumberIndex {
     public int getOffset(int versionNumber) {
         Integer offset = this.map.get(versionNumber);
         if (offset == null) {
-            throw new RuntimeException("Chunk version number " + versionNumber + " was not present in the index.");
+            throw new RuntimeException("MchChunk version number " + versionNumber + " was not present in the index.");
         }
         return offset;
     }

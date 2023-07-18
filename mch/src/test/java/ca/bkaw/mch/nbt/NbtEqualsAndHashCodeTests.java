@@ -3,10 +3,6 @@ package ca.bkaw.mch.nbt;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -87,18 +83,9 @@ public class NbtEqualsAndHashCodeTests {
     }
 
     private void validateEqualsAndHashCode(NbtTag tag) throws IOException {
-        NbtTag copy = this.copyNbt(tag);
+        NbtTag copy = NbtTests.copyNbt(tag);
         assertEquals(tag, copy);
         assertEquals(tag.hashCode(), copy.hashCode(), tag.getClass().getSimpleName() + " hashCode");
     }
 
-    private NbtTag copyNbt(NbtTag nbt) throws IOException {
-        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-        DataOutputStream dataOutput = new DataOutputStream(outBytes);
-        NbtTag.writeTag(dataOutput, nbt);
-
-        ByteArrayInputStream inBytes = new ByteArrayInputStream(outBytes.toByteArray());
-        DataInputStream dataInput = new DataInputStream(inBytes);
-        return NbtTag.readTag(dataInput);
-    }
 }

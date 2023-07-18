@@ -2,6 +2,7 @@ package ca.bkaw.mch.nbt;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -23,6 +24,17 @@ public class NbtTests {
         nbt.read(stream);
 
         return nbt;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends NbtTag> T copyNbt(T nbt) throws IOException {
+        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+        DataOutputStream dataOutput = new DataOutputStream(outBytes);
+        NbtTag.writeTag(dataOutput, nbt);
+
+        ByteArrayInputStream inBytes = new ByteArrayInputStream(outBytes.toByteArray());
+        DataInputStream dataInput = new DataInputStream(inBytes);
+        return (T) NbtTag.readTag(dataInput);
     }
 
     @Test

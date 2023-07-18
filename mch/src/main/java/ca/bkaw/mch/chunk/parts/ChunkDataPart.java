@@ -23,7 +23,7 @@ public abstract class ChunkDataPart {
      *
      * @return The id.
      */
-    byte getId() {
+    public byte getId() {
         return this.id;
     }
 

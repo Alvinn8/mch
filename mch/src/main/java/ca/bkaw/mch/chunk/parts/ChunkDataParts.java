@@ -21,9 +21,9 @@ public class ChunkDataParts {
      */
     public static final ChunkDataPart FREQUENT_UPDATERS = register(new SimpleChunkDataPart(2, Set.of("LastUpdate", "InhabitedTime")));
     /**
-     * The "Sections" tag.
+     * The "sections" tag.
      */
-    public static final ChunkDataPart SECTIONS = register(new SimpleChunkDataPart(3, Set.of("Sections")));
+    public static final ChunkDataPart SECTIONS = register(new SimpleChunkDataPart(3, Set.of("sections")));
     /**
      * Block entities.
      */
