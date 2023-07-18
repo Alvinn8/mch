@@ -92,6 +92,13 @@ public class NbtList implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        int result = this.listTypeId;
+        result = 31 * result + Arrays.hashCode(this.value);
+        return result;
+    }
+
+    @Override
     public int byteSize() {
         int count = 5;
         for (NbtTag tag : this.value) {

@@ -12,7 +12,7 @@ public class SimpleChunkDataPart extends ChunkDataPart {
     private final Set<String> keys;
 
     public SimpleChunkDataPart(int id, Set<String> keys) {
-        super(id);
+        super((byte) id);
         this.keys = keys;
     }
 

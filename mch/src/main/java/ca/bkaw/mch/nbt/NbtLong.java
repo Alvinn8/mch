@@ -49,6 +49,11 @@ public class NbtLong implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        return (int) (this.value ^ (this.value >>> 32));
+    }
+
+    @Override
     public int byteSize() {
         return 8;
     }

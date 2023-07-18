@@ -7,11 +7,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NbtTests {
-    private NbtCompound readUncompressed1() throws IOException {
+    public static NbtCompound readUncompressed1() throws IOException {
         InputStream inputStream = NbtTests.class.getClassLoader().getResourceAsStream("nbt/uncompressed1.nbt");
         assertNotNull(inputStream);
         DataInputStream stream = new DataInputStream(inputStream);
@@ -26,7 +27,7 @@ public class NbtTests {
 
     @Test
     public void readValues() throws IOException {
-        NbtCompound nbt = this.readUncompressed1();
+        NbtCompound nbt = readUncompressed1();
 
         // Assert reading
         assertEquals((byte) 10, get(nbt, "byte", NbtByte.class).getValue());
@@ -55,7 +56,7 @@ public class NbtTests {
 
     @Test
     public void readWriteSameResult() throws IOException {
-        NbtCompound nbt = this.readUncompressed1();
+        NbtCompound nbt = readUncompressed1();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream stream = new DataOutputStream(baos);
@@ -70,5 +71,28 @@ public class NbtTests {
         byte[] foundBytes = baos.toByteArray();
 
         assertArrayEquals(expectedBytes, foundBytes);
+    }
+
+    @Test
+    public void byteSizes() throws IOException {
+        NbtCompound nbt = readUncompressed1();
+
+        for (Map.Entry<String, NbtTag> entry : nbt.entrySet()) {
+            NbtTag tag = entry.getValue();
+            this.validateByteSize(tag);
+        }
+
+        this.validateByteSize(nbt);
+    }
+
+    private void validateByteSize(NbtTag nbt) throws IOException {
+        try (
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream stream = new DataOutputStream(bytes)
+        ) {
+            nbt.write(stream);
+
+            assertEquals(nbt.byteSize(), bytes.toByteArray().length);
+        }
     }
 }

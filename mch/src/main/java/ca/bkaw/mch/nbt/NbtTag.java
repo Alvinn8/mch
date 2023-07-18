@@ -53,6 +53,15 @@ public interface NbtTag {
     boolean equals(Object other);
 
     /**
+     * Nbt tags must implement the {@link Object#hashCode()} method.
+     *
+     * @return The hash code.
+     * @see Object#hashCode()
+     */
+    @Override
+    int hashCode();
+
+    /**
      * Get the amount of bytes required to store this nbt tag.
      *
      * @return The amount of bytes.
@@ -113,5 +122,30 @@ public interface NbtTag {
             return nbtCompound;
         }
         throw new RuntimeException("Root tag must be a compound tag.");
+    }
+
+    /**
+     * Write a named nbt tag.
+     *
+     * @param dataOutput The data output to write to.
+     * @param tag The tag to write.
+     * @param name The name of the tag.
+     * @throws IOException If an I/O error occurs.
+     */
+    static void writeTag(DataOutput dataOutput, NbtTag tag, String name) throws IOException {
+        dataOutput.writeByte(tag.getId());
+        dataOutput.writeUTF(name);
+        tag.write(dataOutput);
+    }
+
+    /**
+     * Write an unnamed nbt tag.
+     *
+     * @param dataOutput The data output to write to.
+     * @param tag The tag to write.
+     * @throws IOException If an I/O error occurs.
+     */
+    static void writeTag(DataOutput dataOutput, NbtTag tag) throws IOException {
+        writeTag(dataOutput, tag, "");
     }
 }

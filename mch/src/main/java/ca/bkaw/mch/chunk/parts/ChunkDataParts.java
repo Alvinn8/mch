@@ -9,7 +9,7 @@ import java.util.Set;
  * A registry for the {@link ChunkDataPart}s that exist.
  */
 public class ChunkDataParts {
-    private static final Map<Integer, ChunkDataPart> BY_ID = new HashMap<>();
+    private static final Map<Byte, ChunkDataPart> BY_ID = new HashMap<>();
 
     /**
      * The {@link ChunkDataPart} that stores the remaining chunk data that was not
@@ -54,7 +54,7 @@ public class ChunkDataParts {
         return chunkDataPart;
     }
 
-    public static ChunkDataPart byId(int id) {
+    public static ChunkDataPart byId(byte id) {
         ChunkDataPart chunkDataPart = BY_ID.get(id);
         if (chunkDataPart == null) {
             throw new IllegalArgumentException("Unknown chunk data part id: " + id);

@@ -15,6 +15,6 @@ public class ChunkDataPartsTests {
 
     @Test
     public void ensureGettingPartsByIdWorks() {
-        assertEquals(ChunkDataParts.byId(1), ChunkDataParts.REMAINING);
+        assertEquals(ChunkDataParts.byId((byte) 1), ChunkDataParts.REMAINING);
     }
 }

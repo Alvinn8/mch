@@ -57,6 +57,11 @@ public class NbtLongArray implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        return Arrays.hashCode(this.value);
+    }
+
+    @Override
     public int byteSize() {
         return 4 + this.value.length * 8;
     }

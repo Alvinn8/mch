@@ -49,6 +49,12 @@ public class NbtDouble implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        long temp = Double.doubleToLongBits(this.value);
+        return (int) (temp ^ (temp >>> 32));
+    }
+
+    @Override
     public int byteSize() {
         return 8;
     }

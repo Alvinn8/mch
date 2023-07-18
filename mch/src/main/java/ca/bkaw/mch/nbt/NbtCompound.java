@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -81,6 +80,10 @@ public class NbtCompound implements NbtTag {
         this.data.putAll(other.data);
     }
 
+    public Set<Map.Entry<String, NbtTag>> entrySet() {
+        return this.data.entrySet();
+    }
+
     @Override
     public String toString() {
         return "NbtCompound" + this.data;
@@ -120,13 +123,19 @@ public class NbtCompound implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        return this.data.hashCode();
+    }
+
+    @Override
     public int byteSize() {
         int count = 0;
         for (Map.Entry<String, NbtTag> entry : this.data.entrySet()) {
             count += 1;
-            count += entry.getKey().getBytes(StandardCharsets.UTF_8).length;
+            count += NbtString.stringByteSize(entry.getKey());
             count += entry.getValue().byteSize();
         }
+        count += 1; // end tag
         return count;
     }
 }

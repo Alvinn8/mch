@@ -7,7 +7,7 @@ import ca.bkaw.mch.nbt.NbtCompound;
  */
 public class RemainingChunkDataPart extends ChunkDataPart {
     public RemainingChunkDataPart(int id) {
-        super(id);
+        super((byte) id);
     }
 
     @Override

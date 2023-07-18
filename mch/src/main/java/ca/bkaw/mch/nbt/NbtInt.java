@@ -49,6 +49,11 @@ public class NbtInt implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        return this.value;
+    }
+
+    @Override
     public int byteSize() {
         return 4;
     }

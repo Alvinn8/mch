@@ -49,6 +49,11 @@ public class NbtFloat implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        return (this.value != 0.0f ? Float.floatToIntBits(this.value) : 0);
+    }
+
+    @Override
     public int byteSize() {
         return 4;
     }

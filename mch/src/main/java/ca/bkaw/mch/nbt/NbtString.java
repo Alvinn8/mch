@@ -31,6 +31,10 @@ public class NbtString implements NbtTag {
         return this.value;
     }
 
+    public void setValue(String value) {
+        this.value = value;
+    }
+
     @Override
     public String toString() {
         return "NbtString{" + this.value + '}';
@@ -51,7 +55,23 @@ public class NbtString implements NbtTag {
     }
 
     @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
     public int byteSize() {
-        return 2 + this.value.getBytes(StandardCharsets.UTF_8).length;
+        return stringByteSize(this.value);
+    }
+
+    /**
+     * Get the size in bytes to serialize the specified string using a {@link NbtString}
+     * or using the {@link DataOutput#writeUTF(String)} method.
+     *
+     * @param str The string.
+     * @return The amount of bytes.
+     */
+    public static int stringByteSize(String str) {
+        return 2 + str.getBytes(StandardCharsets.UTF_8).length;
     }
 }
