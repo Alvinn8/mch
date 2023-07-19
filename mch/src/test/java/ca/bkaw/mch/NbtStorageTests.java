@@ -14,7 +14,7 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class NbtPartStorageTests {
+public class NbtStorageTests {
     @Test
     public void test() throws IOException {
         byte[] bytes = this.write();
@@ -22,7 +22,7 @@ public class NbtPartStorageTests {
     }
 
     private byte[] write() throws IOException {
-        NbtPartStorage storage = new NbtPartStorage();
+        NbtStorage storage = new NbtStorage();
 
         NbtCompound nbt1 = new NbtCompound();
         NbtString str1 = new NbtString();
@@ -54,7 +54,7 @@ public class NbtPartStorageTests {
         ByteArrayInputStream inBytes = new ByteArrayInputStream(bytes);
         DataInputStream input = new DataInputStream(inBytes);
 
-        NbtPartStorage storage = new NbtPartStorage(input);
+        NbtStorage storage = new NbtStorage(input);
 
         NbtCompound nbt1 = storage.get(1);
         NbtString str1 = (NbtString) nbt1.get("test");

@@ -1,6 +1,7 @@
 package ca.bkaw.mch.chunk.parts;
 
-import ca.bkaw.mch.nbt.NbtCompound;
+import java.io.DataInput;
+import java.io.IOException;
 
 /**
  * A handler that extracts and merges a part of the nbt data of a chunk.
@@ -27,20 +28,7 @@ public abstract class ChunkDataPart {
         return this.id;
     }
 
-    /**
-     * Extract the desired data by moving the nbt tags from the chunk nbt into a new
-     * tag.
-     *
-     * @param chunk The chunk nbt.
-     * @return The compound containing the extracted data.
-     */
-    public abstract NbtCompound extract(NbtCompound chunk);
+    public abstract ChunkDataPartStorage createStorage();
 
-    /**
-     * Merge the data part with the chunk nbt.
-     *
-     * @param chunk The chunk nbt.
-     * @param dataPart The data part nbt.
-     */
-    public abstract void merge(NbtCompound chunk, NbtCompound dataPart);
+    public abstract ChunkDataPartStorage readStorage(DataInput dataInput) throws IOException;
 }

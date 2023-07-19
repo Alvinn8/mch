@@ -43,7 +43,7 @@ public class NbtLongArray implements NbtTag {
     }
 
     @Override
-    public String createCompareReport(NbtTag tag) {
+    public String createCompareReport(NbtTag tag, String indent) {
         NbtLongArray other = (NbtLongArray) tag;
         return Arrays.equals(other.value, this.value) ? "EQUAL" : "DIFF (" + this.value.length + " bytes, " + other.value.length + " bytes )";
     }

@@ -16,17 +16,17 @@ import java.util.Map;
  * <p>
  * Each nbt tag is associated with a version number unique to the storage.
  */
-public class NbtPartStorage {
+public class NbtStorage {
     private final Map<Integer, NbtCompound> data;
     private final Map<NbtCompound, Integer> reverse;
 
     /**
-     * Read a serialized {@link NbtPartStorage}.
+     * Read a serialized {@link NbtStorage}.
      *
      * @param dataInput The data input to read from.
      * @throws IOException If an I/O error occurs.
      */
-    public NbtPartStorage(DataInput dataInput) throws IOException {
+    public NbtStorage(DataInput dataInput) throws IOException {
         int mchVersion = dataInput.readInt();
         MchVersion.validate(mchVersion, 2);
         int size = dataInput.readInt();
@@ -42,7 +42,7 @@ public class NbtPartStorage {
     /**
      * Create a new empty nbt part storage.
      */
-    public NbtPartStorage() {
+    public NbtStorage() {
         this.data = new LinkedHashMap<>();
         this.reverse = new HashMap<>();
     }
@@ -81,14 +81,12 @@ public class NbtPartStorage {
     public int store(@NotNull NbtCompound nbt) {
         Integer existingVersionNumber = this.reverse.get(nbt);
         if (existingVersionNumber != null) {
-            System.out.println("Reusing nbt part");
             return existingVersionNumber;
         }
         int versionNumber = 1;
         while (this.data.containsKey(versionNumber)) {
             versionNumber++;
         }
-        System.out.println("Storing new nbt part " + versionNumber);
         this.set(versionNumber, nbt);
         return versionNumber;
     }
@@ -111,6 +109,6 @@ public class NbtPartStorage {
 
     @Override
     public String toString() {
-        return "NbtPartStorage" + this.data;
+        return "NbtStorage" + this.data;
     }
 }

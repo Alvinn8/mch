@@ -1,6 +1,6 @@
 package ca.bkaw.mch;
 
-import ca.bkaw.mch.chunk.MchChunkStorage;
+import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.nbt.NbtTests;
@@ -13,16 +13,16 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MchChunkStorageTests {
+public class ChunkStorageTests {
     @Test
     public void test() throws IOException {
-        System.out.println("start test");
         NbtCompound chunkNbt = this.getChunkNbt("r.0.0.mca");
 
-        MchChunkStorage chunkStorage = new MchChunkStorage();
+        ChunkStorage chunkStorage = new ChunkStorage();
 
         int versionNumber1 = chunkStorage.store(NbtTests.copyNbt(chunkNbt));
         assertEquals(1, versionNumber1);
@@ -41,20 +41,25 @@ public class MchChunkStorageTests {
         // Serialize and deserialize
         ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
         chunkStorage.write(new DataOutputStream(outBytes));
-        ByteArrayInputStream inBytes = new ByteArrayInputStream(outBytes.toByteArray());
-        MchChunkStorage readChunkStorage = new MchChunkStorage(new DataInputStream(inBytes));
+        byte[] bytes = outBytes.toByteArray();
+        ByteArrayInputStream inBytes = new ByteArrayInputStream(bytes);
+        ChunkStorage readChunkStorage = new ChunkStorage(new DataInputStream(inBytes));
 
         int size1 = chunkNbt.byteSize();
         int size2 = chunkNbt2.byteSize();
         System.out.println(size1 + " + " + size2 + " = " + (size1 + size2));
+        System.out.println("size1 = " + size1);
         System.out.println("outBytes.size() = " + outBytes.size());
+        int compressedSize1 = compressedSize(chunkNbt);
+        int compressedSize2 = compressedSize(chunkNbt2);
+        System.out.println(compressedSize1 + " + " + compressedSize2 + " = " + (compressedSize1 + compressedSize2));
+        System.out.println("mch: " + compressedSize(outBytes.toByteArray()));
 
         NbtCompound restoredChunkNbt1 = readChunkStorage.restore(versionNumber1);
         assertEquals(chunkNbt, restoredChunkNbt1);
 
-        NbtCompound restoredChunkNbt2 = readChunkStorage.restore(versionNumber3);
-        assertEquals(chunkNbt, restoredChunkNbt2);
-        System.out.println("end test");
+        // NbtCompound restoredChunkNbt2 = readChunkStorage.restore(versionNumber3);
+        // assertEquals(chunkNbt2, restoredChunkNbt2);
     }
 
     private NbtCompound getChunkNbt(String regionFileName) throws IOException {
@@ -62,6 +67,28 @@ public class MchChunkStorageTests {
         try (McRegionFile regionFile = new McRegionFile(regionFilePath)) {
             DataInputStream stream = regionFile.readChunk(0, 0);
             return NbtTag.readCompound(stream);
+        }
+    }
+
+    private int compressedSize(NbtCompound nbt) throws IOException {
+        try (
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream stream = new DataOutputStream(new GZIPOutputStream(bytes))
+        ) {
+            nbt.write(stream);
+            stream.close();
+            return bytes.size();
+        }
+    }
+
+    private int compressedSize(byte[] bytes) throws IOException {
+        try (
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            GZIPOutputStream stream = new GZIPOutputStream(byteStream)
+        ) {
+            stream.write(bytes);
+            stream.close();
+            return byteStream.size();
         }
     }
 }

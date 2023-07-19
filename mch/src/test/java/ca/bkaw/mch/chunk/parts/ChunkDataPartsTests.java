@@ -9,8 +9,8 @@ public class ChunkDataPartsTests {
     @Test
     public void ensureRemainingIsLast() {
         ChunkDataPart last = ChunkDataParts.CHUNK_DATA_PARTS.get(ChunkDataParts.CHUNK_DATA_PARTS.size() - 1);
-        assertInstanceOf(RemainingChunkDataPart.class, last);
-        assertEquals(last.getId(), 1);
+        assertInstanceOf(ChunkDataParts.RemainingChunkDataPart.class, last);
+        assertEquals(1, last.getId());
     }
 
     @Test

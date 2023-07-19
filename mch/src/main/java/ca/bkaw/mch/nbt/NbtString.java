@@ -41,7 +41,7 @@ public class NbtString implements NbtTag {
     }
 
     @Override
-    public String createCompareReport(NbtTag tag) {
+    public String createCompareReport(NbtTag tag, String indent) {
         NbtString other = (NbtString) tag;
         return Objects.equals(other.value, this.value) ? "EQUAL" : "DIFF (" + this.value + ", " + other.value + ')';
     }

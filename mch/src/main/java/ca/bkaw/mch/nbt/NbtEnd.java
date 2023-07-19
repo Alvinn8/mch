@@ -30,7 +30,7 @@ public class NbtEnd implements NbtTag {
     }
 
     @Override
-    public String createCompareReport(NbtTag other) {
+    public String createCompareReport(NbtTag other, String indent) {
         throw new UnsupportedOperationException("End tags can not be compared");
     }
 

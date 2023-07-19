@@ -1,7 +1,6 @@
 package ca.bkaw.mch.nbt;
 
 import ca.bkaw.mch.test.TestMain;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
@@ -54,15 +53,6 @@ public class NbtCompound implements NbtTag {
         return this.data.get(key);
     }
 
-    @NotNull
-    public NbtCompound getCompound(String key) {
-        NbtTag tag = this.get(key);
-        if (tag instanceof NbtCompound compound) {
-            return compound;
-        }
-        throw new RuntimeException("Expected compound as tag " + key + " but found " + tag);
-    }
-
     public void remove(String key) {
         this.data.remove(key);
     }
@@ -90,7 +80,7 @@ public class NbtCompound implements NbtTag {
     }
 
     @Override
-    public String createCompareReport(NbtTag tag) {
+    public String createCompareReport(NbtTag tag, String indent) {
         NbtCompound other = (NbtCompound) tag;
         StringBuilder str = new StringBuilder("Compound compare report (");
         str.append(this.equals(tag) ? "EQUAL" : "DIFF");
@@ -101,11 +91,15 @@ public class NbtCompound implements NbtTag {
             String key = entry.getKey();
             NbtTag thisTag = entry.getValue();
             NbtTag otherTag = other.get(key);
-            str.append(key).append(": ");
+            str.append(indent);
+            str.append(key);
+            str.append(" (");
             if (otherTag == null) {
                 str.append("CREATED\n");
             } else {
-                str.append(thisTag.createCompareReport(otherTag)).append('\n');
+                str.append(TestMain.formatBytes(otherTag.byteSize()));
+                str.append("): ");
+                str.append(thisTag.createCompareReport(otherTag, indent + "    ")).append('\n');
             }
         }
         if (this.data.size() == 0) {

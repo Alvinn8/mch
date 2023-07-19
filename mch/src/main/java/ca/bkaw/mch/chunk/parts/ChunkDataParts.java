@@ -1,5 +1,7 @@
 package ca.bkaw.mch.chunk.parts;
 
+import java.io.DataInput;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +25,7 @@ public class ChunkDataParts {
     /**
      * The "sections" tag.
      */
-    public static final ChunkDataPart SECTIONS = register(new SimpleChunkDataPart(3, Set.of("sections")));
+    public static final ChunkDataPart SECTIONS = register(new SectionChunkDataPart(3));
     /**
      * Block entities.
      */
@@ -60,5 +62,65 @@ public class ChunkDataParts {
             throw new IllegalArgumentException("Unknown chunk data part id: " + id);
         }
         return chunkDataPart;
+    }
+
+    /**
+     * @see RemainingChunkDataPartStorage
+     */
+    public static class RemainingChunkDataPart extends ChunkDataPart {
+        public RemainingChunkDataPart(int id) {
+            super((byte) id);
+        }
+
+        @Override
+        public ChunkDataPartStorage createStorage() {
+            return new RemainingChunkDataPartStorage();
+        }
+
+        @Override
+        public ChunkDataPartStorage readStorage(DataInput dataInput) throws IOException {
+            return new RemainingChunkDataPartStorage(dataInput);
+        }
+    }
+
+    /**
+     * @see SimpleChunkDataPartStorage
+     */
+    public static class SimpleChunkDataPart extends ChunkDataPart {
+        private final Set<String> keys;
+
+        public SimpleChunkDataPart(int id, Set<String> keys) {
+            super((byte) id);
+            this.keys = keys;
+        }
+
+        @Override
+        public ChunkDataPartStorage createStorage() {
+            return new SimpleChunkDataPartStorage(this.keys);
+        }
+
+        @Override
+        public ChunkDataPartStorage readStorage(DataInput dataInput) throws IOException {
+            return new SimpleChunkDataPartStorage(this.keys, dataInput);
+        }
+    }
+
+    /**
+     * @see SimpleChunkDataPartStorage
+     */
+    public static class SectionChunkDataPart extends ChunkDataPart {
+        public SectionChunkDataPart(int id) {
+            super((byte) id);
+        }
+
+        @Override
+        public ChunkDataPartStorage createStorage() {
+            return new SectionChunkDataPartStorage();
+        }
+
+        @Override
+        public ChunkDataPartStorage readStorage(DataInput dataInput) throws IOException {
+            return new SectionChunkDataPartStorage(dataInput);
+        }
     }
 }

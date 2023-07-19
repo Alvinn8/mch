@@ -41,7 +41,7 @@ public interface NbtTag {
      * @param other The other tag.
      * @return The comparison report.
      */
-    String createCompareReport(NbtTag other);
+    String createCompareReport(NbtTag other, String indent);
 
     /**
      * Compare this nbt tag to the other nbt tag.

@@ -1,5 +1,7 @@
 package ca.bkaw.mch.nbt;
 
+import ca.bkaw.mch.test.TestMain;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -11,6 +13,13 @@ public class NbtList implements NbtTag {
 
     private byte listTypeId;
     private NbtTag[] value;
+
+    public NbtList() {}
+
+    public NbtList(byte listTypeId, int size) {
+        this.listTypeId = listTypeId;
+        this.value = new NbtTag[size];
+    }
 
     @Override
     public byte getId() {
@@ -63,21 +72,23 @@ public class NbtList implements NbtTag {
     }
 
     @Override
-    public String createCompareReport(NbtTag tag) {
+    public String createCompareReport(NbtTag tag, String indent) {
         NbtList other = (NbtList) tag;
         if (this.value.length != other.value.length) {
             return "DIFF (" + this.value.length + " tags, " + other.value.length + " tags)";
         }
         StringBuilder str = new StringBuilder("List compare report (");
         str.append(this.equals(tag) ? "EQUAL" : "DIFF");
+        str.append(", ");
+        str.append(TestMain.formatBytes(this.byteSize()));
         str.append("):\n");
         for (int i = 0; i < this.value.length; i++) {
             NbtTag thisTag = this.value[i];
             NbtTag otherTag = other.value[i];
-            str.append(i).append(": ").append(thisTag.createCompareReport(otherTag)).append('\n');
+            str.append(indent).append(i).append(": ").append(thisTag.createCompareReport(otherTag, indent + "    ")).append('\n');
         }
         if (this.value.length == 0) {
-            str.append("(length 0)");
+            str.append(indent).append("(length 0)");
         }
         return str.toString();
     }
