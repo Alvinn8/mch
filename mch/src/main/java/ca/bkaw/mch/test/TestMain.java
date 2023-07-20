@@ -44,8 +44,6 @@ public class TestMain {
         NbtCompound chunkNbt2 = getChunkNbt("r.0.0_v2.mca");
         chunkStorage.store(copyNbt(chunkNbt2));
 
-        chunkStorage.test();
-
         // Serialize and deserialize
         ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
         chunkStorage.write(new DataOutputStream(outBytes));

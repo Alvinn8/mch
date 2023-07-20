@@ -126,11 +126,6 @@ public class ChunkStorage {
         return chunkNbt;
     }
 
-    public void test() {
-        System.out.println("this.chunkVersions = " + this.chunkVersions);
-        System.out.println("this.chunkPartStorage = " + this.chunkPartStorage);
-    }
-
     public static class MchChunk {
         private final Map<Byte, Integer> nbtPartVersionNumbers;
 

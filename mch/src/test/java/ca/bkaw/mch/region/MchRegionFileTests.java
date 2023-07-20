@@ -26,8 +26,8 @@ public class MchRegionFileTests {
     }
 
     private void saveRegionFile(MchRegionFile mchRegionFile, String regionFileName) throws IOException {
-        // Path regionFilePath = Path.of("src/test/resources/region/" + regionFileName);
-        Path regionFilePath = Path.of("../run/region/" + regionFileName);
+        Path regionFilePath = Path.of("src/test/resources/region/" + regionFileName);
+        // Path regionFilePath = Path.of("../run/region/" + regionFileName);
         try (McRegionFile mcRegionFile = new McRegionFile(regionFilePath)) {
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
@@ -35,7 +35,6 @@ public class MchRegionFileTests {
                         try (DataInputStream stream = mcRegionFile.readChunk(x, z)) {
                             NbtCompound chunkNbt = NbtTag.readCompound(stream);
                             mchRegionFile.writeNewChunk(chunkNbt);
-                            System.out.println("Writing chunk " + x + " " + z + " (" + chunkNbt.byteSize() + ")");
                         }
                     }
                 }
