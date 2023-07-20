@@ -2,6 +2,7 @@ package ca.bkaw.mch.region;
 
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtTag;
+import ca.bkaw.mch.region.mc.McRegionFile;
 import org.junit.jupiter.api.Test;
 
 import java.io.DataInputStream;

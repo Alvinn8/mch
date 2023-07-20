@@ -17,7 +17,7 @@ import java.util.Map;
  * Storage of different versions of a chunk.
  */
 public class ChunkStorage {
-    public static final int MAGIC = 0x4D434821;
+    public static final int MAGIC = 0x6D6368_63;
     
     private final BiMap<Integer, MchChunk> chunkVersions;
     private final Map<Byte, ChunkDataPartStorage> chunkPartStorage;

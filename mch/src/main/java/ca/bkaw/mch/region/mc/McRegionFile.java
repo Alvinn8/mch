@@ -1,4 +1,6 @@
-package ca.bkaw.mch.region;
+package ca.bkaw.mch.region.mc;
+
+import ca.bkaw.mch.util.RandomAccessPath;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -6,6 +8,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.zip.InflaterInputStream;
 
+/**
+ * An object that once created opens a region file for reading chunks.
+ */
 public class McRegionFile implements AutoCloseable {
     public static final int CHUNK_COUNT = 32 * 32;
     public static final int SECTOR_SIZE = 4096;

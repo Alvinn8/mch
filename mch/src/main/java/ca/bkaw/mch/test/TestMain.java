@@ -8,7 +8,7 @@ import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.commit.Commit;
-import ca.bkaw.mch.region.McRegionFile;
+import ca.bkaw.mch.region.mc.McRegionFile;
 import ca.bkaw.mch.repository.MchRepository;
 
 import java.io.BufferedOutputStream;
@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public class TestMain {
-    public static void main3(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
         NbtCompound chunkNbt = getChunkNbt("r.0.0.mca");
 
         ChunkStorage chunkStorage = new ChunkStorage();
@@ -77,7 +77,7 @@ public class TestMain {
         return (T) NbtTag.readTag(dataInput);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main3(String[] args) throws IOException {
         PrintStream stream = new PrintStream(new BufferedOutputStream(new FileOutputStream("mch-compare.txt")));
 
         FileSystem zip1 = openZip(Path.of("backup.zip"));

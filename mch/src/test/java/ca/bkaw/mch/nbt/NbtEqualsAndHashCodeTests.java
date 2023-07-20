@@ -1,5 +1,6 @@
 package ca.bkaw.mch.nbt;
 
+import ca.bkaw.mch.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -13,7 +14,7 @@ public class NbtEqualsAndHashCodeTests {
 
     @BeforeAll
     static void readNbt() throws IOException {
-        nbt = NbtTests.readUncompressed1();
+        nbt = TestUtils.readUncompressed1();
     }
 
     @Test
@@ -83,7 +84,7 @@ public class NbtEqualsAndHashCodeTests {
     }
 
     private void validateEqualsAndHashCode(NbtTag tag) throws IOException {
-        NbtTag copy = NbtTests.copyNbt(tag);
+        NbtTag copy = TestUtils.copyNbt(tag);
         assertEquals(tag, copy);
         assertEquals(tag.hashCode(), copy.hashCode(), tag.getClass().getSimpleName() + " hashCode");
     }

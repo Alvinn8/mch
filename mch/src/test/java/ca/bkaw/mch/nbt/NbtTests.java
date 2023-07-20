@@ -1,10 +1,9 @@
 package ca.bkaw.mch.nbt;
 
+import ca.bkaw.mch.TestUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,33 +12,10 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NbtTests {
-    public static NbtCompound readUncompressed1() throws IOException {
-        InputStream inputStream = NbtTests.class.getClassLoader().getResourceAsStream("nbt/uncompressed1.nbt");
-        assertNotNull(inputStream);
-        DataInputStream stream = new DataInputStream(inputStream);
-
-        assertEquals(stream.readByte(), NbtCompound.ID);
-        stream.readUTF();
-        NbtCompound nbt = new NbtCompound();
-        nbt.read(stream);
-
-        return nbt;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T extends NbtTag> T copyNbt(T nbt) throws IOException {
-        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-        DataOutputStream dataOutput = new DataOutputStream(outBytes);
-        NbtTag.writeTag(dataOutput, nbt);
-
-        ByteArrayInputStream inBytes = new ByteArrayInputStream(outBytes.toByteArray());
-        DataInputStream dataInput = new DataInputStream(inBytes);
-        return (T) NbtTag.readTag(dataInput);
-    }
 
     @Test
     public void readValues() throws IOException {
-        NbtCompound nbt = readUncompressed1();
+        NbtCompound nbt = TestUtils.readUncompressed1();
 
         // Assert reading
         assertEquals((byte) 10, get(nbt, "byte", NbtByte.class).getValue());
@@ -62,13 +38,13 @@ public class NbtTests {
     private <T extends NbtTag> T get(NbtCompound nbtCompound, String key, Class<T> clazz) {
         NbtTag tag = nbtCompound.get(key);
         assertNotNull(tag, "Tag " + key + " did not exist in compound.");
-        assertEquals(tag.getClass(), clazz);
+        assertInstanceOf(clazz, tag);
         return clazz.cast(tag);
     }
 
     @Test
     public void readWriteSameResult() throws IOException {
-        NbtCompound nbt = readUncompressed1();
+        NbtCompound nbt = TestUtils.readUncompressed1();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream stream = new DataOutputStream(baos);
@@ -87,7 +63,7 @@ public class NbtTests {
 
     @Test
     public void byteSizes() throws IOException {
-        NbtCompound nbt = readUncompressed1();
+        NbtCompound nbt = TestUtils.readUncompressed1();
 
         for (Map.Entry<String, NbtTag> entry : nbt.entrySet()) {
             NbtTag tag = entry.getValue();
@@ -104,7 +80,7 @@ public class NbtTests {
         ) {
             nbt.write(stream);
 
-            assertEquals(nbt.byteSize(), bytes.toByteArray().length);
+            assertEquals(bytes.toByteArray().length, nbt.byteSize());
         }
     }
 }

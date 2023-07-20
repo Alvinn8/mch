@@ -1,4 +1,4 @@
-package ca.bkaw.mch.region;
+package ca.bkaw.mch.util;
 
 import java.io.Closeable;
 import java.io.File;

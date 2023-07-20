@@ -35,6 +35,10 @@ public class ChunkDataParts {
      */
     public static final ChunkDataPart HEIGHTMAPS = register(new SimpleChunkDataPart(5, Set.of("Heightmaps")));
 
+    // TODO maybe data version should be separate? When the world updates and no
+    //  changes have been made to the chunk format we will need to save REMAINING
+    //  again. Maybe that is worth it though? Investigate how big REMAINING is.
+
     /**
      * The sequence of {@link ChunkDataPart}s that the current version of mch uses.
      * <p>
