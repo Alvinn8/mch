@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated(forRemoval = true)
 public class RegionFile extends StorageObject {
     public static final String REGION_FOLDER = "region";
 
@@ -45,6 +46,7 @@ public class RegionFile extends StorageObject {
      * @param fileHash The SHA-1 hash of the file contents.
      * @return The SHA-1 hash.
      */
+    @Deprecated(forRemoval = true)
     public static Sha1 getRegionFileIdentifier(String dimension, String fileName, Sha1 fileHash) {
         return Sha1.of(dimension, fileName, fileHash);
     }

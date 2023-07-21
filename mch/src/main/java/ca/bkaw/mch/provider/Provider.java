@@ -8,6 +8,7 @@ import java.util.List;
 /**
  * Provides information about a world to mch.
  */
+@Deprecated(forRemoval = true)
 public interface Provider {
     /**
      * Get a list of dimensions in this world.

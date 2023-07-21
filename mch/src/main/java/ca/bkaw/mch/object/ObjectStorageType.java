@@ -25,8 +25,6 @@ public class ObjectStorageType<T extends StorageObject> {
     public ObjectStorageType(String id, StorageObjectConstructor<T> constructor) {
         this.id = id;
         this.constructor = constructor;
-
-        ObjectStorageTypes.VALUES.add(this);
     }
 
     /**
@@ -65,26 +63,21 @@ public class ObjectStorageType<T extends StorageObject> {
      */
     public Sha1 save(T storageObject, MchRepository repository) throws IOException {
         Path objectsPath = this.getObjectsPath(repository);
+
         Path tempFile = Files.createTempFile(objectsPath, null, null);
         try (DataOutputStream stream = new DataOutputStream(Files.newOutputStream(tempFile))) {
             stream.writeInt(MchVersion.VERSION_NUMBER);
             storageObject.serialize(stream);
         }
 
-        Sha1 hash = storageObject.getSha1Hash(tempFile);
+        Sha1 hash = Sha1.ofFile(tempFile);
         String hex = hash.asHex();
         String group = hex.substring(0, 2);
 
-        Path zipPath = objectsPath.resolve(group + ".zip");
+        Path groupPath = objectsPath.resolve(group);
+        Path objectPath = groupPath.resolve(hex);
 
-        Map<String, Object> env = new HashMap<>();
-        if (Files.notExists(zipPath)) {
-            env.put("create", true);
-        }
-        try (FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zipPath.toUri()), env)) {
-            Path path = fs.getPath(hex);
-            Files.move(tempFile, path, StandardCopyOption.REPLACE_EXISTING);
-        }
+        Files.move(tempFile, objectPath, StandardCopyOption.REPLACE_EXISTING);
         return hash;
     }
 
@@ -101,21 +94,14 @@ public class ObjectStorageType<T extends StorageObject> {
         String hex = sha1.asHex();
         String group = hex.substring(0, 2);
 
-        Path zipPath = this.getObjectsPath(repository).resolve(group + ".zip");
-        if (Files.notExists(zipPath)) {
+        Path groupPath = this.getObjectsPath(repository).resolve(group);
+        Path objectPath = groupPath.resolve(hex);
+
+        if (Files.notExists(objectPath)) {
             throw new ObjectNotFoundException(hex, this.id);
         }
 
-        try (FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zipPath.toUri()), new HashMap<>())) {
-            Path path = fs.getPath(hex);
-            if (Files.notExists(path)) {
-                throw new ObjectNotFoundException(hex, this.id);
-            }
-            DataInputStream stream = new DataInputStream(Files.newInputStream(path));
-            int version = stream.readInt();
-            if (version != MchVersion.VERSION_NUMBER) {
-                throw new IllegalStateException("Unsupported version " + version + ", current is " + MchVersion.VERSION_NUMBER);
-            }
+        try (DataInputStream stream = new DataInputStream(Files.newInputStream(objectPath))) {
             return this.constructor.create(stream);
         }
     }
@@ -126,21 +112,15 @@ public class ObjectStorageType<T extends StorageObject> {
      * @param sha1 The SHA-1 hash.
      * @param repository The repository to read from.
      * @return Whether the object exists.
-     * @throws IOException If an I/O error occurs.
      */
-    public boolean exists(Sha1 sha1, MchRepository repository) throws IOException {
+    public boolean exists(Sha1 sha1, MchRepository repository) {
         String hex = sha1.asHex();
         String group = hex.substring(0, 2);
 
-        Path zipPath = this.getObjectsPath(repository).resolve(group + ".zip");
-        if (Files.notExists(zipPath)) {
-            return false;
-        }
+        Path groupPath = this.getObjectsPath(repository).resolve(group);
+        Path objectPath = groupPath.resolve(hex);
 
-        try (FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zipPath.toUri()), new HashMap<>())) {
-            Path path = fs.getPath(hex);
-            return Files.exists(path);
-        }
+        return Files.exists(objectPath);
     }
 
     public String getId() {

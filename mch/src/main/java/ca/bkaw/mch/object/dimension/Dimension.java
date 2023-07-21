@@ -5,15 +5,17 @@ import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.SerializationUtil;
 import ca.bkaw.mch.object.StorageObject;
 
+import java.io.DataInput;
 import java.io.DataInputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
 public class Dimension extends StorageObject {
-    public static final String OVERWORLD = "overworld";
-    public static final String NETHER = "nether";
-    public static final String THE_END = "the_end";
+    public static final String OVERWORLD = "minecraft:overworld";
+    public static final String NETHER = "minecraft:the_nether";
+    public static final String THE_END = "minecraft:the_end";
 
     private final Map<String, Reference20> regionFiles;
 
@@ -35,5 +37,25 @@ public class Dimension extends StorageObject {
         StringBuilder str = new StringBuilder("region files:\n");
         CatUtil.printMap(this.regionFiles, str);
         return str.toString();
+    }
+
+    public static class RegionFileReference {
+        private final int versionNumber;
+        private final long lastModifiedTime;
+
+        public RegionFileReference(DataInput dataInput) throws IOException {
+            this.versionNumber = dataInput.readInt();
+            this.lastModifiedTime = dataInput.readLong();
+        }
+
+        public RegionFileReference(int versionNumber, long lastModifiedTime) {
+            this.versionNumber = versionNumber;
+            this.lastModifiedTime = lastModifiedTime;
+        }
+
+        public void write(DataOutput dataOutput) throws IOException {
+            dataOutput.writeInt(this.versionNumber);
+            dataOutput.writeLong(this.lastModifiedTime);
+        }
     }
 }

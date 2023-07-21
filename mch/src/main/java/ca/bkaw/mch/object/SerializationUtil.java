@@ -20,14 +20,14 @@ public class SerializationUtil {
      * @throws IOException If an I/O error occurs.
      * @see #readMap(DataInputStream)
      */
-    public static void writeMap(Map<String, Reference20> map, DataOutputStream stream) throws IOException {
+    public static void writeMap(Map<String, Reference20<?>> map, DataOutputStream stream) throws IOException {
         // Write the size
         stream.writeInt(map.size());
         // Sort entries to ensure result is always the same
-        List<Map.Entry<String, Reference20>> entries = new ArrayList<>(map.entrySet());
+        List<Map.Entry<String, Reference20<?>>> entries = new ArrayList<>(map.entrySet());
         entries.sort(Map.Entry.comparingByKey());
         // Write entries
-        for (Map.Entry<String, Reference20> entry : entries) {
+        for (Map.Entry<String, Reference20<?>> entry : entries) {
             stream.writeUTF(entry.getKey());
             entry.getValue().write(stream);
         }
@@ -41,12 +41,12 @@ public class SerializationUtil {
      * @throws IOException If an I/O error occurs.
      * @see #writeMap(Map, DataOutputStream)
      */
-    public static Map<String, Reference20> readMap(DataInputStream stream) throws IOException {
+    public static <T extends StorageObject> Map<String, Reference20<T>> readMap(DataInputStream stream, ObjectStorageType<T> type) throws IOException {
         int size = stream.readInt();
-        Map<String, Reference20> map = new HashMap<>(size);
+        Map<String, Reference20<T>> map = new HashMap<>(size);
         for (int i = 0; i < size; i++) {
             String key = stream.readUTF();
-            Reference20 value = Reference20.read(stream);
+            Reference20<T> value = Reference20.read(stream, type);
             map.put(key, value);
         }
         return map;

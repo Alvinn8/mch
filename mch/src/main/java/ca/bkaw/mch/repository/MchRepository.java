@@ -22,7 +22,7 @@ public class MchRepository {
      * @throws IOException If an I/O error occurs.
      */
     public void createDirectories() throws IOException {
-        for (ObjectStorageType<?> objectStorageType : ObjectStorageTypes.VALUES) {
+        for (ObjectStorageType<?> objectStorageType : ObjectStorageTypes.values()) {
             objectStorageType.createDirectories(this);
         }
     }

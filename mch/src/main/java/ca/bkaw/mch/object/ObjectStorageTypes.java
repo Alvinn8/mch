@@ -1,12 +1,11 @@
 package ca.bkaw.mch.object;
 
-import ca.bkaw.mch.object.chunk.Chunk;
 import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
-import ca.bkaw.mch.object.regionfile.RegionFile;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The different types of objects that can be stored in object storage.
@@ -15,22 +14,7 @@ public class ObjectStorageTypes {
     /**
      * A list of all object storage types.
      */
-    public static final List<ObjectStorageType<?>> VALUES = new ArrayList<>();
-
-    /**
-     * Get an object storage type by id.
-     *
-     * @param id The id of the object storage type.
-     * @return The object storage type, or null.
-     */
-    public static ObjectStorageType<?> getType(String id) {
-        for (ObjectStorageType<?> type : VALUES) {
-            if (type.getId().equals(id)) {
-                return type;
-            }
-        }
-        return null;
-    }
+    private static final Map<String, ObjectStorageType<?>> BY_ID = new HashMap<>();
 
     /**
      * Stores a commit.
@@ -49,16 +33,22 @@ public class ObjectStorageTypes {
         = new ObjectStorageType<>("dimension", Dimension::new);
 
     /**
-     * Stores a region file in a dimension.
-     * <p>
-     * Region files reference chunks.
+     * Get an object storage type by id.
+     *
+     * @param id The id of the object storage type.
+     * @return The object storage type, or null.
      */
-    public static final ObjectStorageType<RegionFile> REGION_FILE
-        = new ObjectStorageType<>("region_file", RegionFile::new);
+    @Nullable
+    public static ObjectStorageType<?> getType(String id) {
+        return BY_ID.get(id);
+    }
 
-    /**
-     * Stores a chunk in a region file.
-     */
-    public static final ObjectStorageType<Chunk> CHUNK
-        = new ObjectStorageType<>("chunk", Chunk::new);
+    public static Iterable<ObjectStorageType<?>> values() {
+        return BY_ID.values();
+    }
+
+    private static <T extends StorageObject> ObjectStorageType<T> register(ObjectStorageType<T> objectStorageType) {
+        BY_ID.put(objectStorageType.getId(), objectStorageType);
+        return objectStorageType;
+    }
 }

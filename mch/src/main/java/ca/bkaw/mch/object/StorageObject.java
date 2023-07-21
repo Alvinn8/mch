@@ -20,7 +20,7 @@ public abstract class StorageObject {
     public abstract void serialize(DataOutputStream stream) throws IOException;
 
     /**
-     * Print this storage object as a human readable string.
+     * Print this storage object as a human-readable string.
      * <p>
      * This will be used for the {@code mch cat-file} command output.
      *
@@ -34,6 +34,7 @@ public abstract class StorageObject {
      * @param tempFile The temporary file containing the serialized object.
      * @return The SHA-1 hash.
      */
+    @Deprecated(forRemoval = true)
     public Sha1 getSha1Hash(Path tempFile) throws IOException {
         return Sha1.ofFile(tempFile);
     }

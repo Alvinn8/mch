@@ -294,15 +294,4 @@ public class TestMain {
     private static FileSystem openZip(Path zipFilePath) throws IOException {
         return FileSystems.newFileSystem(URI.create("jar:" + zipFilePath.toUri()), new HashMap<>());
     }
-
-    public static void main2(String[] args) throws IOException {
-        MchRepository repository = new MchRepository(Path.of("."));
-
-        HashMap<String, Reference20> dimensions = new HashMap<>();
-        dimensions.put("overworld", new Reference20(new Sha1(new byte[20])));
-
-        Commit commit = new Commit("Test commit", System.currentTimeMillis(), dimensions);
-
-        ObjectStorageTypes.COMMIT.save(commit, repository);
-    }
 }
