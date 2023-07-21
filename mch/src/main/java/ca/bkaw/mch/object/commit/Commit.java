@@ -1,48 +1,50 @@
 package ca.bkaw.mch.object.commit;
 
-import ca.bkaw.mch.object.CatUtil;
+import ca.bkaw.mch.MchVersion;
+import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
-import ca.bkaw.mch.object.SerializationUtil;
 import ca.bkaw.mch.object.StorageObject;
+import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Date;
-import java.util.Map;
 
 public class Commit extends StorageObject {
     private final String message;
     private final long time;
-    private final Map<String, Reference20> dimensions;
+    private final Reference20<WorldContainer> worldContainer;
 
-    public Commit(String message, long time, Map<String, Reference20> dimensions) {
+    public Commit(String message, long time, Reference20<WorldContainer> worldContainer) {
         this.message = message;
         this.time = time;
-        this.dimensions = dimensions;
+        this.worldContainer = worldContainer;
     }
 
-    public Commit(DataInputStream stream) throws IOException {
-        this.message = stream.readUTF();
-        this.time = stream.readLong();
-        this.dimensions = SerializationUtil.readMap(stream);
+    public Commit(DataInput dataInput) throws IOException {
+        int mchVersion = dataInput.readInt();
+        MchVersion.validate(mchVersion, 2);
+        this.message = dataInput.readUTF();
+        this.time = dataInput.readLong();
+        this.worldContainer = Reference20.read(dataInput, ObjectStorageTypes.WORLD_CONTAINER);
     }
 
     @Override
-    public void serialize(DataOutputStream stream) throws IOException {
-        stream.writeUTF(this.message);
-        stream.writeLong(this.time);
-        SerializationUtil.writeMap(this.dimensions, stream);
+    public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeInt(MchVersion.VERSION_NUMBER);
+        dataOutput.writeUTF(this.message);
+        dataOutput.writeLong(this.time);
+        this.worldContainer.write(dataOutput);
     }
 
     @Override
     public String cat() {
-        StringBuilder str = new StringBuilder(
-            "message: " + this.message
-            + "\ntime: " + new Date(this.time)
-            + "\ndimensions:\n"
-        );
-        CatUtil.printMap(this.dimensions, str);
-        return str.toString();
+        return "message: " +
+            this.message +
+            "\ntime: " +
+            new Date(this.time) +
+            "\nworld container: " +
+            this.worldContainer.getSha1().asHex();
     }
 }

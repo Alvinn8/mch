@@ -2,6 +2,8 @@ package ca.bkaw.mch.object;
 
 import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.world.World;
+import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -19,10 +21,26 @@ public class ObjectStorageTypes {
     /**
      * Stores a commit.
      * <p>
-     * Commits reference dimensions.
+     * Commits reference a world container.
      */
     public static final ObjectStorageType<Commit> COMMIT
-        = new ObjectStorageType<>("commit", Commit::new);
+        = register(new ObjectStorageType<>("commit", Commit::new));
+
+    /**
+     * Stores the worlds that are tracked by mch.
+     * <p>
+     * World containers reference worlds.
+     */
+    public static ObjectStorageType<WorldContainer> WORLD_CONTAINER
+        = register(new ObjectStorageType<>("world_container", WorldContainer::new));
+
+    /**
+     * Stores a version of a world.
+     * <p>
+     * Worlds reference dimensions.
+     */
+    public static ObjectStorageType<World> WORLD
+        = register(new ObjectStorageType<>("world", World::new));
 
     /**
      * Stores a dimension of a world.
@@ -30,7 +48,7 @@ public class ObjectStorageTypes {
      * Dimensions reference region files.
      */
     public static final ObjectStorageType<Dimension> DIMENSION
-        = new ObjectStorageType<>("dimension", Dimension::new);
+        = register(new ObjectStorageType<>("dimension", Dimension::new));
 
     /**
      * Get an object storage type by id.

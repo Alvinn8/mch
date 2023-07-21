@@ -3,8 +3,8 @@ package ca.bkaw.mch.object;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchRepository;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 
 /**
@@ -19,14 +19,14 @@ public class Reference20<T extends StorageObject> {
         this.ref = ref;
     }
 
-    public static <T extends StorageObject> Reference20<T> read(DataInputStream stream, ObjectStorageType<T> type) throws IOException {
+    public static <T extends StorageObject> Reference20<T> read(DataInput dataInput, ObjectStorageType<T> type) throws IOException {
         byte[] bytes = new byte[20];
-        stream.readFully(bytes);
+        dataInput.readFully(bytes);
         return new Reference20<>(type, new Sha1(bytes));
     }
 
-    public void write(DataOutputStream stream) throws IOException {
-        stream.write(this.ref.getBytes());
+    public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.write(this.ref.getBytes());
     }
 
     /**

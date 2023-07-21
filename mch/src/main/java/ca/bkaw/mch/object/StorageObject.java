@@ -3,7 +3,7 @@ package ca.bkaw.mch.object;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchRepository;
 
-import java.io.DataOutputStream;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -14,10 +14,10 @@ public abstract class StorageObject {
     /**
      * Save this object to bytes.
      *
-     * @param stream The stream to write to.
+     * @param dataOutput The data output to write to.
      * @see ObjectStorageType#save(StorageObject, MchRepository)
      */
-    public abstract void serialize(DataOutputStream stream) throws IOException;
+    public abstract void write(DataOutput dataOutput) throws IOException;
 
     /**
      * Print this storage object as a human-readable string.
