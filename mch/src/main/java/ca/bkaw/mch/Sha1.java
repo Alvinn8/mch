@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
@@ -99,6 +100,23 @@ public class Sha1 {
         md.update(b.getBytes(StandardCharsets.UTF_8));
         md.update(c.getBytes());
         return new Sha1(md.digest());
+    }
+
+    /**
+     * Create a random SHA-1 hash.
+     *
+     * @return The random SHA-1 hash.
+     */
+    public static Sha1 randomSha1() {
+        byte[] bytes = new byte[20];
+        try {
+            SecureRandom.getInstanceStrong().nextBytes(bytes);
+        } catch (NoSuchAlgorithmException e) {
+            // Should never happen. Every Java implementation is required to have at least
+            // one implementation.
+            throw new RuntimeException(e);
+        }
+        return new Sha1(bytes);
     }
 
     /**
