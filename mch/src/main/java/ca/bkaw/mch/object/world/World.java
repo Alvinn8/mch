@@ -30,6 +30,10 @@ public class World extends StorageObject {
         }
     }
 
+    public World() {
+        this.dimensions = new HashMap<>();
+    }
+
     @Override
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeInt(MchVersion.VERSION_NUMBER);
@@ -50,5 +54,9 @@ public class World extends StorageObject {
             str.append("\n");
         }
         return str.toString();
+    }
+
+    public void addDimension(String dimensionKey, Reference20<Dimension> dimensionReference) {
+        this.dimensions.put(dimensionKey, dimensionReference);
     }
 }

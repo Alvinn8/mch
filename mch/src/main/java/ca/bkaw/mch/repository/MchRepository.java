@@ -5,12 +5,14 @@ import ca.bkaw.mch.object.ObjectStorageTypes;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 public class MchRepository {
     /**
      * The root of the repository.
      */
     private final Path root;
+    private MchConfiguration configuration = new MchConfiguration(new ArrayList<>());
 
     public MchRepository(Path root) {
         this.root = root;
@@ -34,5 +36,9 @@ public class MchRepository {
      */
     public Path getRoot() {
         return this.root;
+    }
+
+    public MchConfiguration getConfiguration() {
+        return this.configuration;
     }
 }

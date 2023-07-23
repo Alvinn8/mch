@@ -2,7 +2,7 @@ package ca.bkaw.mch.region.mc;
 
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtTag;
-import ca.bkaw.mch.util.RandomAccessPath;
+import ca.bkaw.mch.util.RandomAccessReader;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -17,12 +17,16 @@ public class McRegionFile implements AutoCloseable {
     public static final int CHUNK_COUNT = 32 * 32;
     public static final int SECTOR_SIZE = 4096;
 
-    private final RandomAccessPath file;
+    private final RandomAccessReader file;
     private final int[] locations = new int[CHUNK_COUNT];
     private final int[] lastModified = new int[CHUNK_COUNT];
 
     public McRegionFile(Path path) throws IOException {
-        this.file = RandomAccessPath.of(path);
+        this(RandomAccessReader.of(path));
+    }
+
+    public McRegionFile(RandomAccessReader file) throws IOException {
+        this.file = file;
         for (int i = 0; i < CHUNK_COUNT; i++) {
             this.locations[i] = this.file.readInt();
         }

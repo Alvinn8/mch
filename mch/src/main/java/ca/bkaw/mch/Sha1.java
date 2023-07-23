@@ -1,5 +1,6 @@
 package ca.bkaw.mch;
 
+import java.io.DataInput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -116,6 +117,19 @@ public class Sha1 {
             // one implementation.
             throw new RuntimeException(e);
         }
+        return new Sha1(bytes);
+    }
+
+    /**
+     * Read a SHA-1 hash from a data input.
+     *
+     * @param dataInput The data input to read from.
+     * @return The SHA-1 hash.
+     * @throws IOException If an I/O error occurs.
+     */
+    public static Sha1 read(DataInput dataInput) throws IOException {
+        byte[] bytes = new byte[20];
+        dataInput.readFully(bytes);
         return new Sha1(bytes);
     }
 

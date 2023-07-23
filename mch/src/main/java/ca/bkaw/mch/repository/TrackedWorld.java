@@ -11,4 +11,12 @@ public class TrackedWorld {
         this.id = id;
         this.worldProvider = worldProvider;
     }
+
+    public Sha1 getId() {
+        return this.id;
+    }
+
+    public WorldProvider getWorldProvider() {
+        return this.worldProvider;
+    }
 }

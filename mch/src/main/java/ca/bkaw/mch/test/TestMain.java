@@ -1,12 +1,21 @@
 package ca.bkaw.mch.test;
 
+import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.chunk.ChunkStorage;
+import ca.bkaw.mch.command.CommitCommand;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtList;
 import ca.bkaw.mch.nbt.NbtTag;
+import ca.bkaw.mch.object.ObjectStorageType;
+import ca.bkaw.mch.object.ObjectStorageTypes;
+import ca.bkaw.mch.object.StorageObject;
+import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.region.MchRegionFile;
 import ca.bkaw.mch.region.MchRegionFileVisitor;
 import ca.bkaw.mch.region.mc.McRegionFile;
+import ca.bkaw.mch.repository.MchRepository;
+import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.world.DirectWorldProvider;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -28,10 +37,66 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Scanner;
 import java.util.Set;
 
 public class TestMain {
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main9(String[] args) throws IOException {
+        MchRepository repository = new MchRepository(Path.of("run"));
+
+        Sha1 sha1 = Sha1.fromString("cb8dd68e909826e2650aff5d22d611795df7d984");
+        DirectWorldProvider worldProvider = new DirectWorldProvider(Path.of("run/world"));
+        TrackedWorld trackedWorld = new TrackedWorld(sha1, worldProvider);
+
+        repository.getConfiguration().getTrackedWorlds().add(trackedWorld);
+
+        System.out.println("worldProvider.getDimensions() = " + worldProvider.getDimensions());
+        System.out.println("worldProvider.getRegionFiles(Dimension.OVERWORLD) = " + worldProvider.getRegionFiles(Dimension.OVERWORLD));
+
+        CommitCommand.run(repository, "Test commit");
+    }
+
+    public static void main(String[] args) {
+        if (args.length < 3) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Enter arguments: ");
+            args = scanner.nextLine().split(" ");
+        }
+        String typeId = args[1];
+        String hash = args[2];
+
+        ObjectStorageType<?> type = ObjectStorageTypes.getType(typeId);
+
+        if (type == null) {
+            System.out.println(typeId + " is not an object storage type.");
+            return;
+        }
+
+        if (hash.length() != 40) {
+            System.out.println("<red>Please specify the 40-character-hexadecimal SHA-1 hash of the object.");
+            return;
+        }
+
+        Sha1 sha1 = Sha1.fromString(hash);
+
+        MchRepository repository = new MchRepository(Path.of("run"));
+
+        StorageObject storageObject;
+        try {
+            storageObject = type.read(sha1, repository);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        System.out.println(typeId + " " + sha1.asHex() + ":\n" + storageObject.cat());
+    }
+
+    public static void main7(String[] args) {
+        System.out.println(Sha1.randomSha1());
+    }
+
+    public static void main6(String[] args) throws IOException, InterruptedException {
         Path path = Path.of("mch/run/test-run/r.0.0.mchr");
         Files.deleteIfExists(path);
         Files.createDirectories(path.getParent());

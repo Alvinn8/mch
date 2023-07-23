@@ -52,6 +52,10 @@ public class Dimension extends StorageObject {
         return str.toString();
     }
 
+    public void addRegionFile(RegionFileReference regionFileReference) {
+        this.regionFiles.add(regionFileReference);
+    }
+
     public static class RegionFileReference {
         private final int regionX;
         private final int regionZ;

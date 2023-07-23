@@ -11,12 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * An object that opens a {@link Path} for random access.
- * <p>
- * In case the path is a file a {@link RandomAccessFile} is used. In other cases
- * the file content is read in its entirety and used in a {@link ByteBuffer}.
+ * A reader that can read with random access.
  */
-public interface RandomAccessPath extends Closeable {
+public interface RandomAccessReader extends Closeable {
     /**
      * Set the cursor offset, measured from the start of the file.
      *
@@ -52,24 +49,37 @@ public interface RandomAccessPath extends Closeable {
 
     /**
      * Open a path for random access.
+     * <p>
+     * In case the path is a file a {@link RandomAccessFile} is used. In other cases
+     * the file content is read in its entirety and used in a {@link ByteBuffer}.
      *
      * @param path The path.
-     * @return The {@link RandomAccessPath} object.
+     * @return The {@link RandomAccessReader} object.
      * @throws IOException If an I/O error occurs.
      */
-    static RandomAccessPath of(Path path) throws IOException {
+    static RandomAccessReader of(Path path) throws IOException {
         try {
             return new RandomAccessFileImpl(path.toFile());
         } catch (UnsupportedOperationException e) {
-            return new RandomAccessPathImpl(path);
+            return new ByteBufferImpl(path);
         }
     }
 
     /**
-     * An implementation of {@link RandomAccessPath} used when the path is a file that
+     * Create a {@link RandomAccessReader} from a byte array.
+     *
+     * @param bytes The bytes.
+     * @return The reader.
+     */
+    static RandomAccessReader of(byte[] bytes) {
+        return new ByteBufferImpl(bytes);
+    }
+
+    /**
+     * An implementation of {@link RandomAccessReader} used when the path is a file that
      * can be opened for random access.
      */
-    class RandomAccessFileImpl implements RandomAccessPath {
+    class RandomAccessFileImpl implements RandomAccessReader {
         private final RandomAccessFile file;
 
         public RandomAccessFileImpl(File file) throws FileNotFoundException {
@@ -103,13 +113,16 @@ public interface RandomAccessPath extends Closeable {
     }
 
     /**
-     * An implementation of {@link RandomAccessPath} used when the path is not a file.
-     * The path will be read in its entirety.
+     * An implementation of {@link RandomAccessReader} that reads from a {@link ByteBuffer}.
      */
-    class RandomAccessPathImpl implements RandomAccessPath {
+    class ByteBufferImpl implements RandomAccessReader {
         private final ByteBuffer byteBuffer;
 
-        public RandomAccessPathImpl(Path path) throws IOException {
+        public ByteBufferImpl(byte[] bytes) {
+            this.byteBuffer = ByteBuffer.wrap(bytes);
+        }
+
+        public ByteBufferImpl(Path path) throws IOException {
             try (InputStream stream = Files.newInputStream(path)) {
                 byte[] bytes = stream.readAllBytes();
                 this.byteBuffer = ByteBuffer.wrap(bytes);

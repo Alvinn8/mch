@@ -59,6 +59,7 @@ public class ObjectStorageType<T extends StorageObject> {
     public Sha1 save(T storageObject, MchRepository repository) throws IOException {
         Path objectsPath = this.getObjectsPath(repository);
 
+        Files.createDirectories(objectsPath);
         Path tempFile = Files.createTempFile(objectsPath, null, null);
         try (DataOutputStream stream = new DataOutputStream(Files.newOutputStream(tempFile))) {
             stream.writeInt(MchVersion.VERSION_NUMBER);
@@ -72,6 +73,7 @@ public class ObjectStorageType<T extends StorageObject> {
         Path groupPath = objectsPath.resolve(group);
         Path objectPath = groupPath.resolve(hex);
 
+        Files.createDirectories(groupPath);
         Files.move(tempFile, objectPath, StandardCopyOption.REPLACE_EXISTING);
         return hash;
     }

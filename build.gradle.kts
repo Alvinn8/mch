@@ -1,10 +1,17 @@
 plugins {
     java
+    id("xyz.jpenilla.run-paper") version "2.1.0"
 }
 
 
 group = "ca.bkaw.mch"
 version = "0.1-SNAPSHOT"
+
+tasks {
+    runServer {
+        minecraftVersion("1.20.1")
+    }
+}
 
 subprojects {
     apply(plugin = "java-library")
