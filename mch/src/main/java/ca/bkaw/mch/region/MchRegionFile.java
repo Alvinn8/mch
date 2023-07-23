@@ -29,8 +29,16 @@ public class MchRegionFile {
     private final Path path;
     private final Path parentFolder;
     private final int[] chunkVersionNumbers = new int[CHUNK_COUNT];
+    private final int[] chunkLastModified = new int[CHUNK_COUNT];
     private final ChunkStorage[] chunkStorages = new ChunkStorage[CHUNK_COUNT];
 
+    /**
+     * Open an MchRegionFile for reading and writing.
+     *
+     * @param path The path to the mch region file.
+     * @param parentFolder The parent folder of the path.
+     * @throws IOException If an I/O error occurs.
+     */
     public MchRegionFile(Path path, Path parentFolder) throws IOException {
         this.path = path;
         this.parentFolder = parentFolder;
@@ -43,7 +51,9 @@ public class MchRegionFile {
                 MchVersion.validate(mchVersion, 2);
                 for (int i = 0; i < CHUNK_COUNT; i++) {
                     int chunkVersionNumber = dataInput.readInt();
+                    int chunkLastModified = dataInput.readInt();
                     this.chunkVersionNumbers[i] = chunkVersionNumber;
+                    this.chunkLastModified[i] = chunkLastModified;
                     if (chunkVersionNumber != 0) {
                         ChunkStorage chunkStorage = new ChunkStorage(dataInput);
                         this.chunkStorages[i] = chunkStorage;
@@ -60,7 +70,9 @@ public class MchRegionFile {
             dataOutput.writeInt(MchVersion.VERSION_NUMBER);
             for (int i = 0; i < CHUNK_COUNT; i++) {
                 int chunkVersionNumber = this.chunkVersionNumbers[i];
+                int chunkLastModified = this.chunkLastModified[i];
                 dataOutput.writeInt(chunkVersionNumber);
+                dataOutput.writeInt(chunkLastModified);
                 if (chunkVersionNumber != 0) {
                     this.chunkStorages[i].write(dataOutput);
                 }

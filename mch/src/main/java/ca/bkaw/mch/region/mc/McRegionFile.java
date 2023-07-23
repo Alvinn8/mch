@@ -39,6 +39,14 @@ public class McRegionFile implements AutoCloseable {
         return this.locations[getIndex(chunkX, chunkZ)] != 0;
     }
 
+    /**
+     * Read a data input stream from chunk coordinates.
+     *
+     * @param chunkX The chunk x coordinate.
+     * @param chunkZ The chunk z coordinate.
+     * @return The data input stream.
+     * @throws IOException If an I/O error occurs.
+     */
     public DataInputStream readChunk(int chunkX, int chunkZ) throws IOException {
         int index = getIndex(chunkX, chunkZ);
 
@@ -50,7 +58,8 @@ public class McRegionFile implements AutoCloseable {
         // 0 1 2   3
         // offset  sector count
         int offsetSector = location >> 8 & 0x00ffffff; // first 3 bytes
-        int sectorLength = location & 0x000000ff; // 4th byte
+        // location & 0x000000ff; // 4th byte is the sectorLength.
+        // The sectorLength is not used here because we read the precise length directly.
 
         int byteOffset = offsetSector * SECTOR_SIZE;
         this.file.seek(byteOffset);
@@ -65,10 +74,36 @@ public class McRegionFile implements AutoCloseable {
         return new DataInputStream(new InflaterInputStream(new ByteArrayInputStream(bytes)));
     }
 
+    /**
+     * Read chunk nbt.
+     *
+     * @param chunkX The chunk x coordinate.
+     * @param chunkZ The chunk z coordinate.
+     * @return The nbt compound.
+     * @throws IOException If an I/O error occurs.
+     */
     public NbtCompound readChunkNbt(int chunkX, int chunkZ) throws IOException {
         try (DataInputStream stream = this.readChunk(chunkX, chunkZ)) {
             return NbtTag.readCompound(stream);
         }
+    }
+
+    /**
+     * Get the time the chunk was marked as last modified, in epoch seconds.
+     * <p>
+     * The last modified time is stored in the region file header and can be read
+     * without having to read the chunk.
+     *
+     * @param chunkX The chunk x coordinate.
+     * @param chunkZ The chunk x coordinate.
+     * @return The last modified time, in epoch seconds.
+     */
+    public int getChunkLastModified(int chunkX, int chunkZ) {
+        int lastModified = this.lastModified[getIndex(chunkX, chunkZ)];
+        if (lastModified == 0) {
+            throw new RuntimeException("The chunk " + chunkX + " " + chunkZ + " is empty in this region file.");
+        }
+        return lastModified;
     }
 
     @Override

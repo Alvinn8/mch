@@ -3,6 +3,7 @@ package ca.bkaw.mch.region;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
+import ca.bkaw.mch.region.mc.McRegionFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -103,12 +104,14 @@ public interface MchRegionFileVisitor {
                 // The order is important here.
 
                 int chunkVersionNumber = input != null ? input.readInt() : 0;
+                int chunkLastModified = input != null ? input.readInt() : 0;
+
                 ChunkStorage chunkStorage = null;
                 if (chunkVersionNumber != 0) {
                     chunkStorage = new ChunkStorage(input);
                 }
 
-                Chunk chunk = new Chunk(chunkX, chunkZ, output == null, chunkVersionNumber, chunkStorage);
+                Chunk chunk = new Chunk(chunkX, chunkZ, output == null, chunkVersionNumber, chunkLastModified, chunkStorage);
 
                 // Propagate IOException to method
                 visitor.visit(chunk);
@@ -117,6 +120,7 @@ public interface MchRegionFileVisitor {
 
                 if (output != null) {
                     output.writeInt(chunk.versionNumber);
+                    output.writeInt(chunk.lastModified);
                     if (chunk.versionNumber != 0) {
                         chunk.chunkStorage.write(output);
                     }
@@ -136,13 +140,15 @@ public interface MchRegionFileVisitor {
         private final int chunkX, chunkZ;
         private final boolean readOnly;
         private int versionNumber;
+        private int lastModified;
         private ChunkStorage chunkStorage;
 
-        public Chunk(int chunkX, int chunkZ, boolean readOnly, int versionNumber, ChunkStorage chunkStorage) {
+        public Chunk(int chunkX, int chunkZ, boolean readOnly, int versionNumber, int lastModified, ChunkStorage chunkStorage) {
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
             this.readOnly = readOnly;
             this.versionNumber = versionNumber;
+            this.lastModified = lastModified;
             this.chunkStorage = chunkStorage;
         }
 
@@ -201,6 +207,27 @@ public interface MchRegionFileVisitor {
          */
         public int getChunkZ() {
             return this.chunkZ;
+        }
+
+        /**
+         * Get when this chunk was marked as last modified, in epoch seconds.
+         * <p>
+         * This can be compared to the last modified time in the {@link McRegionFile}
+         * header by reading {@link McRegionFile#getChunkLastModified(int, int)}.
+         *
+         * @return The last modified time.
+         */
+        public int getLastModified() {
+            return this.lastModified;
+        }
+
+        /**
+         * Set when this chunk is marked as last modified, in epoch seconds.
+         *
+         * @param lastModified The last modified time.
+         */
+        public void setLastModified(int lastModified) {
+            this.lastModified = lastModified;
         }
     }
 }

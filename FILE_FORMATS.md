@@ -31,6 +31,7 @@
 [for chunkZ in 32]
     [for chunkX in 32]
         4 bytes (signed integer) - chunk version number
+        4 bytes (signed integer) - chunk last modified time
         [if chunk version number != 0]
             ChunkStorage - See the ChunkStorage section
 ```
