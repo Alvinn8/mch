@@ -1,5 +1,7 @@
 package ca.bkaw.mch.region.mc;
 
+import ca.bkaw.mch.nbt.NbtCompound;
+import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.util.RandomAccessPath;
 
 import java.io.ByteArrayInputStream;
@@ -61,6 +63,12 @@ public class McRegionFile implements AutoCloseable {
         this.file.readFully(bytes);
 
         return new DataInputStream(new InflaterInputStream(new ByteArrayInputStream(bytes)));
+    }
+
+    public NbtCompound readChunkNbt(int chunkX, int chunkZ) throws IOException {
+        try (DataInputStream stream = this.readChunk(chunkX, chunkZ)) {
+            return NbtTag.readCompound(stream);
+        }
     }
 
     @Override

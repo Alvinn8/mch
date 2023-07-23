@@ -14,7 +14,7 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class RegionFileTests {
+public class McRegionFileTests {
     private void readRegionFile(Path regionFilePath) throws Exception {
         try (McRegionFile regionFile = new McRegionFile(regionFilePath)) {
             DataInputStream stream = regionFile.readChunk(0, 0);

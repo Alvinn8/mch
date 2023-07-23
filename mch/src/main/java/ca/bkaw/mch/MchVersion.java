@@ -1,10 +1,25 @@
 package ca.bkaw.mch;
 
+/**
+ * Holds the current mch version and utility methods used to validate the version.
+ */
 public class MchVersion {
+    /**
+     * The version number used in object files to determine which version of mch it
+     * was saved in.
+     */
     public static final int VERSION_NUMBER = 2;
 
     private MchVersion() {}
 
+    /**
+     * Validate an mch version to ensure it is above the minimum version and that it
+     * is not newer than the current version.
+     *
+     * @param mchVersion The mch version to validate.
+     * @param minVersion The minimum supported version.
+     * @throws UnsupportedMchVersionException If the mch version is not supported.
+     */
     public static void validate(int mchVersion, int minVersion) {
         if (mchVersion < minVersion) {
             throw new UnsupportedMchVersionException(

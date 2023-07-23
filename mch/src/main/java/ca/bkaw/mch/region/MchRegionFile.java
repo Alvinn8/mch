@@ -13,8 +13,15 @@ import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-// "Make it work, then make it fast"
-
+/**
+ * An inefficient object that opens the entire content of an mch region file into
+ * memory.
+ * <p>
+ * This class can be used when chunks need to be read and modified with random
+ * access within the mch region file, but in most cases the {@link MchRegionFileVisitor}
+ * class should be preferred as it does not load the entire file into memory, which
+ * decreases memory usage.
+ */
 public class MchRegionFile {
     public static final int MAGIC = 0x6D6368_72;
     public static final int CHUNK_COUNT = 32 * 32;
@@ -36,9 +43,11 @@ public class MchRegionFile {
                 MchVersion.validate(mchVersion, 2);
                 for (int i = 0; i < CHUNK_COUNT; i++) {
                     int chunkVersionNumber = dataInput.readInt();
-                    ChunkStorage chunkStorage = new ChunkStorage(dataInput);
                     this.chunkVersionNumbers[i] = chunkVersionNumber;
-                    this.chunkStorages[i] = chunkStorage;
+                    if (chunkVersionNumber != 0) {
+                        ChunkStorage chunkStorage = new ChunkStorage(dataInput);
+                        this.chunkStorages[i] = chunkStorage;
+                    }
                 }
             }
         }
@@ -65,7 +74,7 @@ public class MchRegionFile {
         Files.deleteIfExists(oldFilePath);
     }
 
-    private static int getIndex(int chunkX, int chunkZ) {
+    static int getIndex(int chunkX, int chunkZ) {
         return (chunkX & 31) + (chunkZ & 31) * 32;
     }
 
