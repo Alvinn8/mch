@@ -3,6 +3,8 @@ package ca.bkaw.mch.world;
 import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.util.RandomAccessReader;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -24,6 +26,15 @@ public class DirectWorldProvider implements WorldProvider {
 
     public DirectWorldProvider(Path path) {
         this.path = path;
+    }
+
+    public DirectWorldProvider(DataInput dataInput) throws IOException {
+        String str = dataInput.readUTF();
+        this.path = Path.of(str);
+    }
+
+    public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeUTF(this.path.toAbsolutePath().toString());
     }
 
     @Override

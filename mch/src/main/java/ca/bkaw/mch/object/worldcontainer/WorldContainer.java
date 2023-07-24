@@ -44,11 +44,12 @@ public class WorldContainer extends StorageObject {
 
     @Override
     public String cat() {
-        StringBuilder str = new StringBuilder("world container:");
+        StringBuilder str = new StringBuilder();
         for (Map.Entry<Sha1, Reference20<World>> entry : this.worlds.entrySet()) {
             str.append(entry.getKey().asHex());
             str.append(": ");
             str.append(entry.getValue().getSha1().asHex());
+            str.append("\n");
         }
         return str.toString();
     }

@@ -1,6 +1,5 @@
 package ca.bkaw.mch.object;
 
-import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchRepository;
 
@@ -62,7 +61,6 @@ public class ObjectStorageType<T extends StorageObject> {
         Files.createDirectories(objectsPath);
         Path tempFile = Files.createTempFile(objectsPath, null, null);
         try (DataOutputStream stream = new DataOutputStream(Files.newOutputStream(tempFile))) {
-            stream.writeInt(MchVersion.VERSION_NUMBER);
             storageObject.write(stream);
         }
 

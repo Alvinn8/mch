@@ -42,7 +42,7 @@ import java.util.Set;
 
 public class TestMain {
     public static void main9(String[] args) throws IOException {
-        MchRepository repository = new MchRepository(Path.of("run"));
+        MchRepository repository = new MchRepository(Path.of("run/mch"));
 
         Sha1 sha1 = Sha1.fromString("cb8dd68e909826e2650aff5d22d611795df7d984");
         DirectWorldProvider worldProvider = new DirectWorldProvider(Path.of("run/world"));
@@ -56,11 +56,18 @@ public class TestMain {
         CommitCommand.run(repository, "Test commit");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length < 3) {
             Scanner scanner = new Scanner(System.in);
             System.out.print("Enter arguments: ");
             args = scanner.nextLine().split(" ");
+        }
+        if ("commit".equals(args[0])) {
+            main9(args);
+            return;
+        }
+        if ("exit".equals(args[0])) {
+            return;
         }
         String typeId = args[1];
         String hash = args[2];
@@ -79,7 +86,7 @@ public class TestMain {
 
         Sha1 sha1 = Sha1.fromString(hash);
 
-        MchRepository repository = new MchRepository(Path.of("run"));
+        MchRepository repository = new MchRepository(Path.of("run/mch"));
 
         StorageObject storageObject;
         try {
@@ -90,6 +97,8 @@ public class TestMain {
         }
 
         System.out.println(typeId + " " + sha1.asHex() + ":\n" + storageObject.cat());
+
+        main(new String[0]);
     }
 
     public static void main7(String[] args) {

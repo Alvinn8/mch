@@ -46,7 +46,7 @@ public class World extends StorageObject {
 
     @Override
     public String cat() {
-        StringBuilder str = new StringBuilder("world:\n");
+        StringBuilder str = new StringBuilder();
         for (Map.Entry<String, Reference20<Dimension>> entry : this.dimensions.entrySet()) {
             str.append(entry.getKey());
             str.append(": ");

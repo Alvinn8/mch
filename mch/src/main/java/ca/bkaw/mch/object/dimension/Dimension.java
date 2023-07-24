@@ -45,6 +45,7 @@ public class Dimension extends StorageObject {
             str.append(regionFile.regionZ);
             str.append(": version number:");
             str.append(regionFile.versionNumber);
+            str.append("\n");
         }
         if (this.regionFiles.isEmpty()) {
             str.append("(empty)");
