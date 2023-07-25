@@ -1,7 +1,11 @@
 package ca.bkaw.mch.repository;
 
+import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
+import ca.bkaw.mch.object.Reference20;
+import ca.bkaw.mch.object.commit.Commit;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -51,6 +55,42 @@ public class MchRepository {
         try (DataOutputStream stream = new DataOutputStream(Files.newOutputStream(path))) {
             this.configuration.write(stream);
         }
+    }
+
+    private Path getHeadPath() {
+        return this.root.resolve("head");
+    }
+
+    /**
+     * Get the head commit, the latest commit.
+     *
+     * @return The head commit.
+     * @throws IOException If an I/O error occurs.
+     */
+    @Nullable
+    public Reference20<Commit> getHeadCommit() throws IOException {
+        Path path = this.getHeadPath();
+        if (Files.notExists(path)) {
+            return null;
+        }
+        String str = Files.readString(path).trim();
+        if (str.isEmpty()) {
+            return null;
+        }
+        Sha1 sha1 = Sha1.fromString(str);
+        return new Reference20<>(ObjectStorageTypes.COMMIT, sha1);
+    }
+
+    /**
+     * Set the head commit, the latest commit.
+     *
+     * @param commitReference The reference to the commit, or null.
+     * @throws IOException If an I/O error occurs.
+     */
+    public void setHeadCommit(@Nullable Reference20<Commit> commitReference) throws IOException {
+        Path path = this.getHeadPath();
+        String str = commitReference == null ? "" : commitReference.getSha1().asHex();
+        Files.writeString(path, str);
     }
 
     /**

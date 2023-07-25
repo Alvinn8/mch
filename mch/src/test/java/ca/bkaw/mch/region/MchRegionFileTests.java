@@ -38,7 +38,7 @@ public class MchRegionFileTests {
                     if (mcRegionFile.hasChunk(x, z)) {
                         try (DataInputStream stream = mcRegionFile.readChunk(x, z)) {
                             NbtCompound chunkNbt = NbtTag.readCompound(stream);
-                            mchRegionFile.writeNewChunk(chunkNbt);
+                            mchRegionFile.store(chunkNbt);
                         }
                     }
                 }

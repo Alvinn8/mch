@@ -28,7 +28,6 @@ public class MchRegionFile {
 
     private final Path path;
     private final Path parentFolder;
-    private final int[] chunkVersionNumbers = new int[CHUNK_COUNT];
     private final int[] chunkLastModified = new int[CHUNK_COUNT];
     private final ChunkStorage[] chunkStorages = new ChunkStorage[CHUNK_COUNT];
 
@@ -50,14 +49,10 @@ public class MchRegionFile {
                 int mchVersion = dataInput.readInt();
                 MchVersion.validate(mchVersion, 2);
                 for (int i = 0; i < CHUNK_COUNT; i++) {
-                    int chunkVersionNumber = dataInput.readInt();
                     int chunkLastModified = dataInput.readInt();
-                    this.chunkVersionNumbers[i] = chunkVersionNumber;
                     this.chunkLastModified[i] = chunkLastModified;
-                    if (chunkVersionNumber != 0) {
-                        ChunkStorage chunkStorage = new ChunkStorage(dataInput);
-                        this.chunkStorages[i] = chunkStorage;
-                    }
+                    ChunkStorage chunkStorage = new ChunkStorage(dataInput);
+                    this.chunkStorages[i] = chunkStorage;
                 }
             }
         }
@@ -69,13 +64,9 @@ public class MchRegionFile {
             dataOutput.writeInt(MAGIC);
             dataOutput.writeInt(MchVersion.VERSION_NUMBER);
             for (int i = 0; i < CHUNK_COUNT; i++) {
-                int chunkVersionNumber = this.chunkVersionNumbers[i];
                 int chunkLastModified = this.chunkLastModified[i];
-                dataOutput.writeInt(chunkVersionNumber);
                 dataOutput.writeInt(chunkLastModified);
-                if (chunkVersionNumber != 0) {
-                    this.chunkStorages[i].write(dataOutput);
-                }
+                this.chunkStorages[i].write(dataOutput);
             }
         }
         Path oldFilePath = this.parentFolder.resolve(tempFile.getFileName() + "_old");
@@ -90,7 +81,7 @@ public class MchRegionFile {
         return (chunkX & 31) + (chunkZ & 31) * 32;
     }
 
-    public void writeNewChunk(NbtCompound chunk) {
+    public int store(NbtCompound chunk) {
         NbtInt xPos = (NbtInt) chunk.get("xPos");
         NbtInt zPos = (NbtInt) chunk.get("zPos");
         if (xPos == null || zPos == null) {
@@ -104,7 +95,6 @@ public class MchRegionFile {
             this.chunkStorages[index] = chunkStorage;
         }
 
-        int chunkVersionNumber = chunkStorage.store(chunk);
-        this.chunkVersionNumbers[index] = chunkVersionNumber;
+        return chunkStorage.store(chunk);
     }
 }

@@ -5,6 +5,7 @@ import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -15,11 +16,13 @@ public class Commit extends StorageObject {
     private final String message;
     private final long time;
     private final Reference20<WorldContainer> worldContainer;
+    private final Reference20<Commit> previousCommit;
 
-    public Commit(String message, long time, Reference20<WorldContainer> worldContainer) {
-        this.message = message;
+    public Commit(String message, long time, Reference20<WorldContainer> worldContainer, @Nullable Reference20<Commit> previousCommit) {
+        this.message = message == null ? "" : message;
         this.time = time;
         this.worldContainer = worldContainer;
+        this.previousCommit = previousCommit;
     }
 
     public Commit(DataInput dataInput) throws IOException {
@@ -28,6 +31,8 @@ public class Commit extends StorageObject {
         this.message = dataInput.readUTF();
         this.time = dataInput.readLong();
         this.worldContainer = Reference20.read(dataInput, ObjectStorageTypes.WORLD_CONTAINER);
+        boolean hasPreviousCommit = dataInput.readBoolean();
+        this.previousCommit = hasPreviousCommit ? Reference20.read(dataInput, ObjectStorageTypes.COMMIT) : null;
     }
 
     @Override
@@ -36,6 +41,12 @@ public class Commit extends StorageObject {
         dataOutput.writeUTF(this.message);
         dataOutput.writeLong(this.time);
         this.worldContainer.write(dataOutput);
+        if (this.previousCommit == null) {
+            dataOutput.writeBoolean(false);
+        } else {
+            dataOutput.writeBoolean(true);
+            this.previousCommit.write(dataOutput);
+        }
     }
 
     @Override
@@ -45,6 +56,12 @@ public class Commit extends StorageObject {
             "\ntime: " +
             new Date(this.time) +
             "\nworld container: " +
-            this.worldContainer.getSha1().asHex();
+            this.worldContainer.getSha1().asHex() +
+            "\nprevious commit: " +
+            (this.previousCommit == null ? "null" : this.previousCommit.getSha1().asHex());
+    }
+
+    public Reference20<WorldContainer> getWorldContainer() {
+        return this.worldContainer;
     }
 }

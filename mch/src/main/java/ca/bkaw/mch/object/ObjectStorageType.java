@@ -51,11 +51,11 @@ public class ObjectStorageType<T extends StorageObject> {
      * Save a storage object.
      *
      * @param storageObject The object to save.
-     * @param repository The repository to save to.
+     * @param repository    The repository to save to.
      * @return The identifying SHA-1 hash the object was stored as.
      * @throws IOException If an I/O error occurs.
      */
-    public Sha1 save(T storageObject, MchRepository repository) throws IOException {
+    public Reference20<T> save(T storageObject, MchRepository repository) throws IOException {
         Path objectsPath = this.getObjectsPath(repository);
 
         Files.createDirectories(objectsPath);
@@ -73,7 +73,8 @@ public class ObjectStorageType<T extends StorageObject> {
 
         Files.createDirectories(groupPath);
         Files.move(tempFile, objectPath, StandardCopyOption.REPLACE_EXISTING);
-        return hash;
+
+        return new Reference20<>(this, hash);
     }
 
     /**

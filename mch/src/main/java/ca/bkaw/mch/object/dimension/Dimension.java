@@ -1,6 +1,7 @@
 package ca.bkaw.mch.object.dimension;
 
 import ca.bkaw.mch.object.StorageObject;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -43,7 +44,7 @@ public class Dimension extends StorageObject {
             str.append(regionFile.regionX);
             str.append(" ");
             str.append(regionFile.regionZ);
-            str.append(": version number:");
+            str.append(":\tversion number: ");
             str.append(regionFile.versionNumber);
             str.append("\n");
         }
@@ -55,6 +56,16 @@ public class Dimension extends StorageObject {
 
     public void addRegionFile(RegionFileReference regionFileReference) {
         this.regionFiles.add(regionFileReference);
+    }
+
+    @Nullable
+    public RegionFileReference getRegionFile(int regionX, int regionZ) {
+        for (RegionFileReference regionFile : this.regionFiles) {
+            if (regionFile.regionX == regionX && regionFile.regionZ == regionZ) {
+                return regionFile;
+            }
+        }
+        return null;
     }
 
     public static class RegionFileReference {
@@ -82,6 +93,14 @@ public class Dimension extends StorageObject {
             dataOutput.writeInt(this.regionZ);
             dataOutput.writeInt(this.versionNumber);
             dataOutput.writeLong(this.lastModifiedTime);
+        }
+
+        public int getVersionNumber() {
+            return this.versionNumber;
+        }
+
+        public long getLastModifiedTime() {
+            return this.lastModifiedTime;
         }
     }
 }

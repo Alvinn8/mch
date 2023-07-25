@@ -5,6 +5,7 @@ import ca.bkaw.mch.util.RandomAccessReader;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -38,7 +39,7 @@ public class DirectWorldProvider implements WorldProvider {
     }
 
     @Override
-    public List<String> getDimensions() throws IOException {
+    public List<String> getDimensions() {
         List<String> dimensions = new ArrayList<>(3);
         if (Files.isDirectory(this.path.resolve("region"))) {
             dimensions.add(Dimension.OVERWORLD);
@@ -58,7 +59,7 @@ public class DirectWorldProvider implements WorldProvider {
             case Dimension.OVERWORLD -> this.path;
             case Dimension.NETHER -> this.path.resolve(NETHER_FOLDER);
             case Dimension.THE_END -> this.path.resolve(THE_END_FOLDER);
-            default -> this.path.resolve("dimensions").resolve(dimension.replace(':', '/'));
+            default -> this.path.resolve("dimensions").resolve(dimension.replace(':', File.separatorChar));
         };
     }
 
@@ -73,6 +74,9 @@ public class DirectWorldProvider implements WorldProvider {
     @Override
     public List<RegionFileInfo> getRegionFiles(String dimension) throws IOException {
         Path regionFolder = this.getDimensionPath(dimension).resolve("region");
+        if (!Files.isDirectory(regionFolder)) {
+            return List.of();
+        }
         try (Stream<Path> files = Files.list(regionFolder)) {
             return files
                 .filter(path -> path.getFileName().toString().startsWith("r."))

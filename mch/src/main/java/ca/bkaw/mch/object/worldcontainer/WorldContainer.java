@@ -6,6 +6,7 @@ import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
 import ca.bkaw.mch.object.world.World;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -56,5 +57,10 @@ public class WorldContainer extends StorageObject {
 
     public void addWorld(Sha1 worldId, Reference20<World> worldReference) {
         this.worlds.put(worldId, worldReference);
+    }
+
+    @Nullable
+    public Reference20<World> getWorld(Sha1 id) {
+        return this.worlds.get(id);
     }
 }

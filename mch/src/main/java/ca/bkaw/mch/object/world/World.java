@@ -5,6 +5,7 @@ import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
 import ca.bkaw.mch.object.dimension.Dimension;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -58,5 +59,10 @@ public class World extends StorageObject {
 
     public void addDimension(String dimensionKey, Reference20<Dimension> dimensionReference) {
         this.dimensions.put(dimensionKey, dimensionReference);
+    }
+
+    @Nullable
+    public Reference20<Dimension> getDimension(String dimensionKey) {
+        return this.dimensions.get(dimensionKey);
     }
 }

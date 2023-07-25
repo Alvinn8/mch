@@ -37,7 +37,7 @@ public interface MchRegionFileVisitor {
     void visit(MchRegionFileVisitor.Chunk chunk) throws IOException;
 
     /**
-     * Visit an mch region file for reading an writing.
+     * Visit an mch region file for reading and writing.
      *
      * @param mchRegionFilePath The path to the mch region file.
      * @param visitor The visitor.
@@ -74,7 +74,7 @@ public interface MchRegionFileVisitor {
         }
 
         if (tempOutputFile != null) {
-            Path oldFilePath = path.getParent().resolve(tempOutputFile.getFileName() + "_old");
+            Path oldFilePath = path.getParent().resolve(path.getFileName() + "_old");
             if (Files.exists(path)) {
                 Files.move(path, oldFilePath);
             }
@@ -93,38 +93,33 @@ public interface MchRegionFileVisitor {
                 throw new RuntimeException("Expected mch region file magic header. Is the mch region file corrupted?");
             }
             int mchVersion = input.readInt();
-            MchVersion.validate(mchVersion, 2);
+            MchVersion.validate(mchVersion, 3);
         }
         if (output != null) {
             output.writeInt(MchRegionFile.MAGIC);
             output.writeInt(MchVersion.VERSION_NUMBER);
         }
+        int index = 0;
         for (int chunkZ = 0; chunkZ < 32; chunkZ++) {
             for (int chunkX = 0; chunkX < 32; chunkX++) {
                 // The order is important here.
 
-                int chunkVersionNumber = input != null ? input.readInt() : 0;
                 int chunkLastModified = input != null ? input.readInt() : 0;
+                ChunkStorage chunkStorage = input != null ? new ChunkStorage(input) : new ChunkStorage();
 
-                ChunkStorage chunkStorage = null;
-                if (chunkVersionNumber != 0) {
-                    chunkStorage = new ChunkStorage(input);
-                }
-
-                Chunk chunk = new Chunk(chunkX, chunkZ, output == null, chunkVersionNumber, chunkLastModified, chunkStorage);
+                Chunk chunk = new Chunk(index, chunkX, chunkZ, chunkLastModified, chunkStorage);
 
                 // Propagate IOException to method
                 visitor.visit(chunk);
 
-                // The visitor may not have modified the version number and chunk storage.
+                // The visitor may now have modified the last modified time and chunk storage.
 
                 if (output != null) {
-                    output.writeInt(chunk.versionNumber);
                     output.writeInt(chunk.lastModified);
-                    if (chunk.versionNumber != 0) {
-                        chunk.chunkStorage.write(output);
-                    }
+                    chunk.chunkStorage.write(output);
                 }
+
+                index++;
             }
         }
     }
@@ -137,40 +132,16 @@ public interface MchRegionFileVisitor {
      * does not need to be loaded into memory at once.
      */
     class Chunk {
-        private final int chunkX, chunkZ;
-        private final boolean readOnly;
-        private int versionNumber;
+        private final int index, chunkX, chunkZ;
+        private final ChunkStorage chunkStorage;
         private int lastModified;
-        private ChunkStorage chunkStorage;
 
-        public Chunk(int chunkX, int chunkZ, boolean readOnly, int versionNumber, int lastModified, ChunkStorage chunkStorage) {
+        public Chunk(int index, int chunkX, int chunkZ, int lastModified, ChunkStorage chunkStorage) {
+            this.index = index;
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
-            this.readOnly = readOnly;
-            this.versionNumber = versionNumber;
             this.lastModified = lastModified;
             this.chunkStorage = chunkStorage;
-        }
-
-        /**
-         * Check if there is a chunk stored in this mch region file.
-         *
-         * @return Whether there is a chunk stored.
-         */
-        public boolean isEmpty() {
-            return this.versionNumber == 0;
-        }
-
-        /**
-         * Read the current version of the chunk.
-         *
-         * @return The chunk nbt.
-         */
-        public NbtCompound read() {
-            if (this.versionNumber == 0) {
-                throw new IllegalStateException("No chunk is available to read.");
-            }
-            return this.chunkStorage.restore(this.versionNumber);
         }
 
         /**
@@ -181,14 +152,11 @@ public interface MchRegionFileVisitor {
          *
          * @param chunk The chunk nbt.
          */
-        public void store(NbtCompound chunk) {
-            if (this.readOnly) {
+        public int store(NbtCompound chunk) {
+            if (this.chunkStorage == null) {
                 throw new IllegalStateException("Can not store a chunk when using visitReadOnly");
             }
-            if (this.chunkStorage == null) {
-                this.chunkStorage = new ChunkStorage();
-            }
-            this.versionNumber = this.chunkStorage.store(chunk);
+            return this.chunkStorage.store(chunk);
         }
 
         /**
@@ -207,6 +175,15 @@ public interface MchRegionFileVisitor {
          */
         public int getChunkZ() {
             return this.chunkZ;
+        }
+
+        /**
+         * Get the index in an mch region file where the chunk is located.
+         *
+         * @return The index.
+         */
+        public int getIndex() {
+            return this.index;
         }
 
         /**
