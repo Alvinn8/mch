@@ -6,6 +6,8 @@ import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
 import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.tree.Tree;
+import ca.bkaw.mch.object.tree.TreeTracker;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import ca.bkaw.mch.region.MchRefRegionFile;
@@ -56,6 +58,17 @@ public class CommitCommand {
                 Dimension currentDimension = resolve(repository, currentWorld != null
                     ? currentWorld.getDimension(dimensionKey)
                     : null);
+
+                // Track files
+                // TODO tracking files with a WorldProvider
+                Reference20<Tree> treeReference = TreeTracker.trackDirectoryTree(
+                    repository,
+                    /* directoryPath */ null,
+                    str -> switch (str) {
+                        case "region", "DIM1", "DIM-1", "dimensions", "mch" -> false;
+                        default -> true;
+                    }
+                );
 
                 // Store region files
 

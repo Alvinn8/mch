@@ -1,7 +1,9 @@
 package ca.bkaw.mch.object;
 
+import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import org.jetbrains.annotations.Nullable;
@@ -49,6 +51,20 @@ public class ObjectStorageTypes {
      */
     public static final ObjectStorageType<Dimension> DIMENSION
         = register(new ObjectStorageType<>("dimension", Dimension::new));
+
+    /**
+     * Stores a directory.
+     * <p>
+     * Trees reference other trees (sub directories) and blobs (files).
+     */
+    public static final ObjectStorageType<Tree> TREE
+        = register(new ObjectStorageType<>("tree", Tree::new));
+
+    /**
+     * Stores a binary large object, usually a file.
+     */
+    public static final ObjectStorageType<Blob> BLOB
+        = register(new ObjectStorageType<>("blob", Blob::new));
 
     /**
      * Get an object storage type by id.
