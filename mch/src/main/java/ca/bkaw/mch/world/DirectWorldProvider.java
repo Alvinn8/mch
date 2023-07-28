@@ -91,4 +91,16 @@ public class DirectWorldProvider implements WorldProvider {
         Path path = this.getDimensionPath(dimension).resolve("region").resolve(regionFileName);
         return RandomAccessReader.of(path);
     }
+
+    @Override
+    public Stream<String> list(String directory) throws IOException {
+        try (Stream<Path> files = Files.list(this.path.resolve(directory))) {
+            return files.map(Path::toString);
+        }
+    }
+
+    @Override
+    public byte[] readFile(String fileName) throws IOException {
+        return Files.readAllBytes(this.path.resolve(fileName));
+    }
 }

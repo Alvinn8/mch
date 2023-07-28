@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class CommitCommand {
+public class CommitOperation {
     public static void run(MchRepository repository, String commitMessage) throws IOException {
         // Read configuration and current commit from repository
         MchConfiguration configuration = repository.getConfiguration();

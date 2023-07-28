@@ -2,7 +2,7 @@ package ca.bkaw.mch.bukkit.command;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.bukkit.MchBukkit;
-import ca.bkaw.mch.command.CommitCommand;
+import ca.bkaw.mch.command.CommitOperation;
 import ca.bkaw.mch.object.ObjectNotFoundException;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
@@ -62,7 +62,7 @@ public class MchCommand implements CommandExecutor {
         MchRepository repository = this.plugin.getRepository();
 
         try {
-            CommitCommand.run(repository, commitMessage);
+            CommitOperation.run(repository, commitMessage);
         } catch (IOException e) {
             sender.sendRichMessage("<red>Failed to commit: " + e.getMessage());
             e.printStackTrace();

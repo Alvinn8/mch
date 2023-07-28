@@ -13,5 +13,11 @@ repositories {
 
 dependencies {
     implementation(project(":mch"))
-    implementation("net.sf.jopt-simple:jopt-simple:6.0-alpha-3")
+    implementation("com.google.inject:guice:6.0.0")
+    implementation("info.picocli:picocli:4.7.4")
+    annotationProcessor("info.picocli:picocli-codegen:4.7.4")
+}
+
+tasks.compileJava {
+    options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
 }

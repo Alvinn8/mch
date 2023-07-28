@@ -5,6 +5,7 @@ import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
@@ -63,5 +64,19 @@ public class Commit extends StorageObject {
 
     public Reference20<WorldContainer> getWorldContainer() {
         return this.worldContainer;
+    }
+
+    @Nullable
+    public Reference20<Commit> getPreviousCommit() {
+        return this.previousCommit;
+    }
+
+    @NotNull
+    public String getMessage() {
+        return this.message;
+    }
+
+    public long getTime() {
+        return this.time;
     }
 }

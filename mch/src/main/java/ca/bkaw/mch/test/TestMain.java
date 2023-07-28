@@ -2,7 +2,7 @@ package ca.bkaw.mch.test;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.chunk.ChunkStorage;
-import ca.bkaw.mch.command.CommitCommand;
+import ca.bkaw.mch.command.CommitOperation;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtList;
 import ca.bkaw.mch.nbt.NbtTag;
@@ -53,7 +53,7 @@ public class TestMain {
         System.out.println("worldProvider.getDimensions() = " + worldProvider.getDimensions());
         System.out.println("worldProvider.getRegionFiles(Dimension.OVERWORLD) = " + worldProvider.getRegionFiles(Dimension.OVERWORLD));
 
-        CommitCommand.run(repository, "Test commit");
+        CommitOperation.run(repository, "Test commit");
     }
 
     public static void main(String[] args) throws IOException {
