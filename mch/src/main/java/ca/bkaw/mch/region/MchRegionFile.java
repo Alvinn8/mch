@@ -1,5 +1,6 @@
 package ca.bkaw.mch.region;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
@@ -23,7 +24,7 @@ import java.util.zip.GZIPOutputStream;
  * decreases memory usage.
  */
 public class MchRegionFile {
-    public static final int MAGIC = 0x6D6368_72;
+    public static final int MAGIC = FileMagic.REGION_STORAGE;
     public static final int CHUNK_COUNT = 32 * 32;
 
     private final Path path;

@@ -1,5 +1,6 @@
 package ca.bkaw.mch.object.worldcontainer;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.object.ObjectStorageTypes;
@@ -15,6 +16,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WorldContainer extends StorageObject {
+    public static final int MAGIC = FileMagic.WORLD_CONTAINER;
+
     private final Map<Sha1, Reference20<World>> worlds;
 
     public WorldContainer() {
@@ -22,6 +25,7 @@ public class WorldContainer extends StorageObject {
     }
 
     public WorldContainer(DataInput dataInput) throws IOException {
+        FileMagic.validate(dataInput, MAGIC);
         int mchVersion = dataInput.readInt();
         MchVersion.validate(mchVersion, 2);
         int size = dataInput.readInt();
@@ -35,6 +39,7 @@ public class WorldContainer extends StorageObject {
 
     @Override
     public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeInt(MAGIC);
         dataOutput.writeInt(MchVersion.VERSION_NUMBER);
         dataOutput.writeInt(this.worlds.size());
         for (Map.Entry<Sha1, Reference20<World>> entry : this.worlds.entrySet()) {

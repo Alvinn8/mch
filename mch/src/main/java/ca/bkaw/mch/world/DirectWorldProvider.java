@@ -1,6 +1,11 @@
 package ca.bkaw.mch.world;
 
+import ca.bkaw.mch.object.ObjectStorageTypes;
+import ca.bkaw.mch.object.Reference20;
+import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.tree.Tree;
+import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
 
 import java.io.DataInput;
@@ -12,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -92,15 +98,34 @@ public class DirectWorldProvider implements WorldProvider {
         return RandomAccessReader.of(path);
     }
 
-    @Override
-    public Stream<String> list(String directory) throws IOException {
-        try (Stream<Path> files = Files.list(this.path.resolve(directory))) {
-            return files.map(Path::toString);
-        }
-    }
 
     @Override
-    public byte[] readFile(String fileName) throws IOException {
-        return Files.readAllBytes(this.path.resolve(fileName));
+    public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate) throws IOException {
+        return this.trackDirectoryTree(repository, this.getDimensionPath(dimension), predicate);
+    }
+
+    private Reference20<Tree> trackDirectoryTree(MchRepository repository, Path directory, Predicate<String> predicate) throws IOException {
+        Tree tree = new Tree();
+        try (Stream<Path> files = Files.list(directory)) {
+            for (Path path : files.sorted().toList()) {
+                String name = path.getFileName().toString();
+                if (!predicate.test(name)) {
+                    continue;
+                }
+                if (Files.isDirectory(path)) {
+                    // Track subdirectories
+                    Reference20<Tree> subDirectoryReference = trackDirectoryTree(repository, path, str -> true);
+                    tree.addSubTree(name, subDirectoryReference);
+                }  else if (Files.isRegularFile(path)) {
+                    // Track files
+                    byte[] bytes = Files.readAllBytes(path);
+                    Blob blob = new Blob(bytes);
+                    tree.addFile(name, ObjectStorageTypes.BLOB.save(blob, repository));
+                }
+            }
+        }
+
+        // Save the tree
+        return ObjectStorageTypes.TREE.save(tree, repository);
     }
 }

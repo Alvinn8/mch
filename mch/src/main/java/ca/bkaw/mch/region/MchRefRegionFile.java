@@ -1,5 +1,6 @@
 package ca.bkaw.mch.region;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 
 import java.io.DataInputStream;
@@ -16,7 +17,7 @@ import java.util.zip.GZIPOutputStream;
  * version numbers to use to recreate a certain version of a region file.
  */
 public class MchRefRegionFile {
-    public static final int MAGIC = 0x6D6368_76;
+    public static final int MAGIC = FileMagic.REGION_FILE;
 
     public static int createUghImTired(Path path, int[] newChunkVersionNumbers) throws IOException {
         if (newChunkVersionNumbers.length != 1024) {
@@ -32,9 +33,7 @@ public class MchRefRegionFile {
             DataOutputStream output = new DataOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile)))
         ) {
             if (input != null) {
-                if (input.readInt() != MAGIC) {
-                    throw new RuntimeException("Expected magic. Is the mch region reference file corrupted?");
-                }
+                FileMagic.validate(input, MAGIC);
                 int mchVersion = input.readInt();
                 MchVersion.validate(mchVersion, 3);
             }
@@ -91,9 +90,7 @@ public class MchRefRegionFile {
 
     public static int[] read(Path path, int regionFileVersionNumber) throws IOException {
         try (DataInputStream input = new DataInputStream(new GZIPInputStream(Files.newInputStream(path)))) {
-            if (input.readInt() != MAGIC) {
-                throw new RuntimeException("Expected magic. Is the mch region reference file corrupted?");
-            }
+            FileMagic.validate(input, MAGIC);
             int mchVersion = input.readInt();
             MchVersion.validate(mchVersion, 3);
             while (input.readBoolean()) {

@@ -1,6 +1,11 @@
 package ca.bkaw.mch.object.dimension;
 
+import ca.bkaw.mch.FileMagic;
+import ca.bkaw.mch.MchVersion;
+import ca.bkaw.mch.object.ObjectStorageTypes;
+import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
+import ca.bkaw.mch.object.tree.Tree;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
@@ -10,17 +15,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Dimension extends StorageObject {
+    public static final int MAGIC = FileMagic.DIMENSION;
+
     public static final String OVERWORLD = "minecraft:overworld";
     public static final String NETHER = "minecraft:the_nether";
     public static final String THE_END = "minecraft:the_end";
 
+    private final Reference20<Tree> miscellaneousFiles;
     private final List<RegionFileReference> regionFiles;
 
-    public Dimension() {
+    public Dimension(Reference20<Tree> miscellaneousFiles) {
+        this.miscellaneousFiles = miscellaneousFiles;
         this.regionFiles = new ArrayList<>();
     }
 
     public Dimension(DataInput dataInput) throws IOException {
+        FileMagic.validate(dataInput, MAGIC);
+        int mchVersion = dataInput.readInt();
+        MchVersion.validate(mchVersion, 4);
+        this.miscellaneousFiles = Reference20.read(dataInput, ObjectStorageTypes.TREE);
         int size = dataInput.readInt();
         this.regionFiles = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -30,6 +43,9 @@ public class Dimension extends StorageObject {
 
     @Override
     public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeInt(MAGIC);
+        dataOutput.writeInt(MchVersion.VERSION_NUMBER);
+        this.miscellaneousFiles.write(dataOutput);
         dataOutput.writeInt(this.regionFiles.size());
         for (RegionFileReference regionFile : this.regionFiles) {
             regionFile.write(dataOutput);
@@ -49,8 +65,10 @@ public class Dimension extends StorageObject {
             str.append("\n");
         }
         if (this.regionFiles.isEmpty()) {
-            str.append("(empty)");
+            str.append("(empty)\n");
         }
+        str.append("miscellaneous files: ");
+        str.append(this.miscellaneousFiles.getSha1().asHex());
         return str.toString();
     }
 

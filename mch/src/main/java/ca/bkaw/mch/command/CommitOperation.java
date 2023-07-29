@@ -7,7 +7,6 @@ import ca.bkaw.mch.object.StorageObject;
 import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.object.tree.Tree;
-import ca.bkaw.mch.object.tree.TreeTracker;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import ca.bkaw.mch.region.MchRefRegionFile;
@@ -26,11 +25,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class CommitOperation {
-    public static void run(MchRepository repository, String commitMessage) throws IOException {
+    public static void run(MchRepository repository, String commitMessage, boolean cache) throws IOException {
         // Read configuration and current commit from repository
         MchConfiguration configuration = repository.getConfiguration();
         Reference20<Commit> currentCommitReference = repository.getHeadCommit();
-        Commit currentCommit = currentCommitReference != null ? currentCommitReference.resolve(repository) : null;
+        Commit currentCommit = currentCommitReference != null && cache ? currentCommitReference.resolve(repository) : null;
 
         WorldContainer currentWorldContainer = currentCommit != null
             ? currentCommit.getWorldContainer().resolve(repository)
@@ -52,23 +51,22 @@ public class CommitOperation {
 
             for (String dimensionKey : worldProvider.getDimensions()) {
 
-                // The dimension object for this version of the dimension.
-                Dimension dimension = new Dimension();
-
-                Dimension currentDimension = resolve(repository, currentWorld != null
-                    ? currentWorld.getDimension(dimensionKey)
-                    : null);
-
-                // Track files
-                // TODO tracking files with a WorldProvider
-                Reference20<Tree> treeReference = TreeTracker.trackDirectoryTree(
+                // Track miscellaneous files
+                Reference20<Tree> treeReference = worldProvider.trackDirectoryTree(
+                    dimensionKey,
                     repository,
-                    /* directoryPath */ null,
                     str -> switch (str) {
                         case "region", "DIM1", "DIM-1", "dimensions", "mch" -> false;
                         default -> true;
                     }
                 );
+
+                // The dimension object for this version of the dimension.
+                Dimension dimension = new Dimension(treeReference);
+
+                Dimension currentDimension = resolve(repository, currentWorld != null
+                    ? currentWorld.getDimension(dimensionKey)
+                    : null);
 
                 // Store region files
 

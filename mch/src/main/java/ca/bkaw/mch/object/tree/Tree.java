@@ -1,5 +1,6 @@
 package ca.bkaw.mch.object.tree;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
@@ -13,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Tree extends StorageObject {
-    public static final int MAGIC = 0x6D6368_74;
+    public static final int MAGIC = FileMagic.TREE;
 
     private final Map<String, Reference20<Tree>> trees;
     private final Map<String, Reference20<Blob>> blobs;
@@ -74,16 +75,18 @@ public class Tree extends StorageObject {
             str.append("directories:\n");
             for (Map.Entry<String, Reference20<Tree>> entry : this.trees.entrySet()) {
                 str.append(entry.getKey());
-                str.append(": ");
+                str.append(":\t");
                 str.append(entry.getValue().getSha1().asHex());
+                str.append('\n');
             }
         }
         if (!this.blobs.isEmpty()) {
             str.append("files:\n");
             for (Map.Entry<String, Reference20<Blob>> entry : this.blobs.entrySet()) {
                 str.append(entry.getKey());
-                str.append(": ");
+                str.append(":\t");
                 str.append(entry.getValue().getSha1().asHex());
+                str.append('\n');
             }
         }
         return str.toString();

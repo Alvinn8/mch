@@ -1,5 +1,6 @@
 package ca.bkaw.mch.region;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
@@ -89,14 +90,12 @@ public interface MchRegionFileVisitor {
         @NotNull MchRegionFileVisitor visitor
     ) throws IOException {
         if (input != null) {
-            if (input.readInt() != MchRegionFile.MAGIC) {
-                throw new RuntimeException("Expected mch region file magic header. Is the mch region file corrupted?");
-            }
+            FileMagic.validate(input, FileMagic.REGION_STORAGE);
             int mchVersion = input.readInt();
             MchVersion.validate(mchVersion, 3);
         }
         if (output != null) {
-            output.writeInt(MchRegionFile.MAGIC);
+            output.writeInt(FileMagic.REGION_STORAGE);
             output.writeInt(MchVersion.VERSION_NUMBER);
         }
         int index = 0;

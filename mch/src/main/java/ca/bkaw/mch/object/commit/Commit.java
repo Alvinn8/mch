@@ -1,5 +1,6 @@
 package ca.bkaw.mch.object.commit;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
@@ -14,6 +15,8 @@ import java.io.IOException;
 import java.util.Date;
 
 public class Commit extends StorageObject {
+    public static final int MAGIC = FileMagic.COMMIT;
+
     private final String message;
     private final long time;
     private final Reference20<WorldContainer> worldContainer;
@@ -27,6 +30,7 @@ public class Commit extends StorageObject {
     }
 
     public Commit(DataInput dataInput) throws IOException {
+        FileMagic.validate(dataInput, MAGIC);
         int mchVersion = dataInput.readInt();
         MchVersion.validate(mchVersion, 2);
         this.message = dataInput.readUTF();
@@ -38,6 +42,7 @@ public class Commit extends StorageObject {
 
     @Override
     public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeInt(MAGIC);
         dataOutput.writeInt(MchVersion.VERSION_NUMBER);
         dataOutput.writeUTF(this.message);
         dataOutput.writeLong(this.time);

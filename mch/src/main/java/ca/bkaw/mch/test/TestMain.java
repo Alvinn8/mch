@@ -53,7 +53,7 @@ public class TestMain {
         System.out.println("worldProvider.getDimensions() = " + worldProvider.getDimensions());
         System.out.println("worldProvider.getRegionFiles(Dimension.OVERWORLD) = " + worldProvider.getRegionFiles(Dimension.OVERWORLD));
 
-        CommitOperation.run(repository, "Test commit");
+        CommitOperation.run(repository, "Test commit", true);
     }
 
     public static void main(String[] args) throws IOException {

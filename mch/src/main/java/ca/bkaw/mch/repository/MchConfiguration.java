@@ -1,5 +1,7 @@
 package ca.bkaw.mch.repository;
 
+import ca.bkaw.mch.FileMagic;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -7,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MchConfiguration {
-    public static final int MAGIC = 0x6D6368_43;
+    public static final int MAGIC = FileMagic.CONFIGURATION;
 
     private final List<TrackedWorld> trackedWorlds;
 
@@ -16,9 +18,7 @@ public class MchConfiguration {
     }
 
     public MchConfiguration(DataInput dataInput) throws IOException {
-        if (dataInput.readInt() != MAGIC) {
-            throw new RuntimeException("Invalid mch configuration");
-        }
+        FileMagic.validate(dataInput, MAGIC);
         int size = dataInput.readInt();
         this.trackedWorlds = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {

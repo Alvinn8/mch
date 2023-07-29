@@ -1,5 +1,6 @@
 package ca.bkaw.mch.chunk;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.parts.ChunkDataPart;
 import ca.bkaw.mch.chunk.parts.ChunkDataPartStorage;
@@ -17,15 +18,13 @@ import java.util.Map;
  * Storage of different versions of a chunk.
  */
 public class ChunkStorage {
-    public static final int MAGIC = 0x6D6368_63;
+    public static final int MAGIC = FileMagic.CHUNK_STORAGE;
     
     private final BiMap<Integer, MchChunk> chunkVersions;
     private final Map<Byte, ChunkDataPartStorage> chunkPartStorage;
 
     public ChunkStorage(DataInput dataInput) throws IOException {
-        if (dataInput.readInt() != MAGIC) {
-            throw new RuntimeException("Expected mch chunk storage magic header. Is the mch chunk file corrupted?");
-        }
+        FileMagic.validate(dataInput, MAGIC);
         int mchVersion = dataInput.readInt();
         MchVersion.validate(mchVersion, 2);
         int chunkVersionsSize = dataInput.readInt();

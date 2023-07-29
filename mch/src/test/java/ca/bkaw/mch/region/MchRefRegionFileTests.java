@@ -15,6 +15,7 @@ public class MchRefRegionFileTests {
     void test() throws IOException {
         Path path = Path.of("run/r.0.0.mchrv");
         Files.deleteIfExists(path);
+        Files.createDirectories(path.getParent());
 
         int[] chunkVersionNumbers1 = new int[1024];
         Arrays.fill(chunkVersionNumbers1, 1);

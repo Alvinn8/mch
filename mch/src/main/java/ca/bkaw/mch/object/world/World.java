@@ -1,5 +1,6 @@
 package ca.bkaw.mch.object.world;
 
+import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
@@ -17,9 +18,12 @@ import java.util.Map;
  * A storage object that stores a specific version of a world.
  */
 public class World extends StorageObject {
+    public static final int MAGIC = FileMagic.WORLD;
+
     private final Map<String, Reference20<Dimension>> dimensions;
 
     public World(DataInput dataInput) throws IOException {
+        FileMagic.validate(dataInput, MAGIC);
         int mchVersion = dataInput.readInt();
         MchVersion.validate(mchVersion, 2);
         int size = dataInput.readInt();
@@ -37,6 +41,7 @@ public class World extends StorageObject {
 
     @Override
     public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeInt(MAGIC);
         dataOutput.writeInt(MchVersion.VERSION_NUMBER);
         dataOutput.writeInt(this.dimensions.size());
         for (Map.Entry<String, Reference20<Dimension>> entry : this.dimensions.entrySet()) {
