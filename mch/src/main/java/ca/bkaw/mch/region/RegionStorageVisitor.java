@@ -11,6 +11,8 @@ import ca.bkaw.mch.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -97,10 +99,10 @@ public interface RegionStorageVisitor {
 
         try (
             DataInputStream input = Files.exists(path)
-                ? new DataInputStream(new GZIPInputStream(Files.newInputStream(path)))
+                ? new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(path))))
                 : null;
             DataOutputStream output = !readOnly
-                ? new DataOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile)))
+                ? new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile))))
                 : null
         ) {
             performVisit(input, output, visitor);

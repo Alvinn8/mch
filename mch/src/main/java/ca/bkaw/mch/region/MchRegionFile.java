@@ -7,6 +7,8 @@ import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.Util;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -73,9 +75,9 @@ public class MchRegionFile {
         int newRegionFileVersionNumber;
         try (
             DataInputStream input = Files.exists(path)
-                ? new DataInputStream(new GZIPInputStream(Files.newInputStream(path)))
+                ? new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(path))))
                 : null;
-            DataOutputStream output = new DataOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile)))
+            DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile))))
         ) {
             if (input != null) {
                 FileMagic.validate(input, MAGIC);
@@ -152,7 +154,7 @@ public class MchRegionFile {
      * @throws IOException If an I/O error occurs.
      */
     public static int[] read(Path path, int regionFileVersionNumber) throws IOException {
-        try (DataInputStream input = new DataInputStream(new GZIPInputStream(Files.newInputStream(path)))) {
+        try (DataInputStream input = new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(path))))) {
             FileMagic.validate(input, MAGIC);
             int mchVersion = input.readInt();
             MchVersion.validate(mchVersion, 3);

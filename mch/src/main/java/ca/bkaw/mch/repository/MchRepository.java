@@ -7,6 +7,8 @@ import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.commit.Commit;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -45,14 +47,14 @@ public class MchRepository {
             this.configuration = new MchConfiguration();
             return;
         }
-        try (DataInputStream stream = new DataInputStream(Files.newInputStream(path))) {
+        try (DataInputStream stream = new DataInputStream(new BufferedInputStream(Files.newInputStream(path)))) {
             this.configuration = new MchConfiguration(stream);
         }
     }
 
     public void saveConfiguration() throws IOException {
         Path path = this.getConfigurationPath();
-        try (DataOutputStream stream = new DataOutputStream(Files.newOutputStream(path))) {
+        try (DataOutputStream stream = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(path)))) {
             this.configuration.write(stream);
         }
     }

@@ -3,6 +3,8 @@ package ca.bkaw.mch.object;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchRepository;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -60,7 +62,7 @@ public class ObjectStorageType<T extends StorageObject> {
 
         Files.createDirectories(objectsPath);
         Path tempFile = Files.createTempFile(objectsPath, null, null);
-        try (DataOutputStream stream = new DataOutputStream(Files.newOutputStream(tempFile))) {
+        try (DataOutputStream stream = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(tempFile)))) {
             storageObject.write(stream);
         }
 
@@ -97,26 +99,9 @@ public class ObjectStorageType<T extends StorageObject> {
             throw new ObjectNotFoundException(hex, this.id);
         }
 
-        try (DataInputStream stream = new DataInputStream(Files.newInputStream(objectPath))) {
+        try (DataInputStream stream = new DataInputStream(new BufferedInputStream(Files.newInputStream(objectPath)))) {
             return this.constructor.create(stream);
         }
-    }
-
-    /**
-     * Check if an object exists with the specified identifying SHA-1 hash.
-     *
-     * @param sha1 The SHA-1 hash.
-     * @param repository The repository to read from.
-     * @return Whether the object exists.
-     */
-    public boolean exists(Sha1 sha1, MchRepository repository) {
-        String hex = sha1.asHex();
-        String group = hex.substring(0, 2);
-
-        Path groupPath = this.getObjectsPath(repository).resolve(group);
-        Path objectPath = groupPath.resolve(hex);
-
-        return Files.exists(objectPath);
     }
 
     public String getId() {
