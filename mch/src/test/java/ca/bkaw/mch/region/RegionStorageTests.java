@@ -2,11 +2,9 @@ package ca.bkaw.mch.region;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.nbt.NbtCompound;
-import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.region.mc.McRegionFileReader;
 import org.junit.jupiter.api.Test;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,10 +38,9 @@ public class RegionStorageTests {
         try (McRegionFileReader mcRegionFile = new McRegionFileReader(regionFilePath)) {
             RegionStorageVisitor.visit(regionStoragePath, chunk -> {
                 if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
-                    try (DataInputStream stream = mcRegionFile.readChunk(chunk.getChunkX(), chunk.getChunkZ())) {
-                        NbtCompound chunkNbt = NbtTag.readCompound(stream);
-                        chunk.store(chunkNbt);
-                    }
+                    NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
+                    int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
+                    chunk.store(chunkNbt, chunkLastModified);
                 }
             });
         }

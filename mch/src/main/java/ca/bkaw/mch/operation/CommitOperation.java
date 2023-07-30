@@ -119,21 +119,28 @@ public class CommitOperation {
                     ) {
                         RegionStorageVisitor.visit(regionStoragePath, chunk -> {
                             if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
+                                // There is a chunk in the region file
+
+                                // Get when it was last modified
                                 int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
-                                if (currentChunkVersionNumbers != null
-                                    && chunk.getLastModified() == chunkLastModified) {
-                                    // The chunk has not been modified since the last commit.
-                                    // We do not need to store it again.
-                                    chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumbers[chunk.getIndex()];
-                                    return;
+
+                                if (currentChunkVersionNumbers != null) {
+                                    // We can use the previous chunk version numbers to get the previous last
+                                    // modified time.
+                                    int currentChunkVersionNumber = currentChunkVersionNumbers[chunk.getIndex()];
+                                    if (chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
+                                        // The chunk has not been modified since the last commit.
+                                        // We do not need to store it again.
+                                        chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumber;
+                                        return;
+                                    }
                                 }
+
                                 // Read the chunk nbt
                                 NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
 
                                 // Store the chunk
-                                int chunkVersionNumber = chunk.store(chunkNbt);
-
-                                chunk.setLastModified(chunkLastModified);
+                                int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
 
                                 // Save the version number of the chunk
                                 chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;

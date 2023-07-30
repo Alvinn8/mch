@@ -93,56 +93,6 @@ public class TestMain {
         System.out.println(Sha1.randomSha1());
     }
 
-    public static void main6(String[] args) throws IOException, InterruptedException {
-        Path path = Path.of("mch/run/test-run/r.0.0.mchr");
-        Files.deleteIfExists(path);
-        Files.createDirectories(path.getParent());
-
-        Thread.sleep(30_000);
-        System.out.println("Starting!");
-
-        try (McRegionFileReader mcRegionFile1 = new McRegionFileReader(Path.of("mch/src/test/resources/region/r.0.0.mca"));
-             McRegionFileReader mcRegionFile2 = new McRegionFileReader(Path.of("mch/src/test/resources/region/r.0.0_v2.mca"))) {
-
-            RegionStorageVisitor.visit(path, chunk -> {
-                if (!mcRegionFile1.hasChunk(chunk.getChunkX(), chunk.getChunkZ()) || mcRegionFile2.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
-                    return;
-                }
-                NbtCompound chunkNbt1 = mcRegionFile1.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
-                NbtCompound chunkNbt2 = mcRegionFile2.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
-
-                chunk.store(chunkNbt1);
-                chunk.store(chunkNbt2);
-            });
-        }
-
-        System.out.println("Done");
-
-        Thread.sleep(1000_000);
-    }
-
-    public static void main4(String[] args) throws IOException {
-        NbtCompound chunkNbt = getChunkNbt("r.0.0.mca");
-
-        ChunkStorage chunkStorage = new ChunkStorage();
-
-        chunkStorage.store(copyNbt(chunkNbt));
-
-        NbtCompound chunkNbt2 = getChunkNbt("r.0.0_v2.mca");
-        chunkStorage.store(copyNbt(chunkNbt2));
-
-        // Serialize and deserialize
-        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-        chunkStorage.write(new DataOutputStream(outBytes));
-
-        int size1 = chunkNbt.byteSize();
-        int size2 = chunkNbt2.byteSize();
-        System.out.println(size1 + " + " + size2 + " = " + (size1 + size2));
-        System.out.println("outBytes.size() = " + outBytes.size());
-
-        System.out.println(chunkNbt.createCompareReport(chunkNbt2, ""));
-    }
-
     private static NbtCompound getChunkNbt(String regionFileName) throws IOException {
         Path regionFilePath = Path.of("run/region/" + regionFileName);
         try (McRegionFileReader regionFile = new McRegionFileReader(regionFilePath)) {

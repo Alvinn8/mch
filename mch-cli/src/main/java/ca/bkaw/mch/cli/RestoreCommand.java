@@ -1,7 +1,7 @@
 package ca.bkaw.mch.cli;
 
 import ca.bkaw.mch.Sha1;
-import ca.bkaw.mch.nbt.NbtCompound;
+import ca.bkaw.mch.chunk.RegionFileChunk;
 import ca.bkaw.mch.object.ObjectNotFoundException;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
@@ -105,8 +105,8 @@ public class RestoreCommand implements Callable<Integer> {
                         RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
                             int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
                             if (chunkVersionNumber != 0) {
-                                NbtCompound chunkNbt = chunk.restore(chunkVersionNumber);
-                                regionFile.writeChunk(chunkNbt, chunk.getLastModified()); // TODO this is the wrong last modified time
+                                RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
+                                regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
                             }
                         });
                     }

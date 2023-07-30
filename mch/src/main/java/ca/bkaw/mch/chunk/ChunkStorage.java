@@ -7,6 +7,7 @@ import ca.bkaw.mch.chunk.parts.ChunkDataPartStorage;
 import ca.bkaw.mch.chunk.parts.ChunkDataParts;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.util.BiMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -26,7 +27,7 @@ public class ChunkStorage {
     public ChunkStorage(DataInput dataInput) throws IOException {
         FileMagic.validate(dataInput, MAGIC);
         int mchVersion = dataInput.readInt();
-        MchVersion.validate(mchVersion, 2);
+        MchVersion.validate(mchVersion, 8);
         int chunkVersionsSize = dataInput.readInt();
         this.chunkVersions = new BiMap<>(chunkVersionsSize);
         for (int i = 0; i < chunkVersionsSize; i++) {
@@ -64,8 +65,8 @@ public class ChunkStorage {
         }
     }
 
-    public int store(NbtCompound chunk) {
-        MchChunk mchChunk = new MchChunk();
+    public int store(NbtCompound chunk, int lastModified) {
+        MchChunk mchChunk = new MchChunk(lastModified);
 
         // Split the chunk nbt into parts
         for (ChunkDataPart chunkDataPart : ChunkDataParts.CHUNK_DATA_PARTS) {
@@ -102,11 +103,17 @@ public class ChunkStorage {
         return chunkVersionNumber;
     }
 
-    public NbtCompound restore(int versionNumber) {
+    @NotNull
+    private MchChunk getChunk(int versionNumber) {
         MchChunk mchChunk = this.chunkVersions.get(versionNumber);
         if (mchChunk == null) {
             throw new RuntimeException("Chunk with version number " + versionNumber + " was not present in storage.");
         }
+        return mchChunk;
+    }
+
+    public RegionFileChunk restore(int versionNumber) {
+        MchChunk mchChunk = getChunk(versionNumber);
         // Merge the nbt that was split back into one compound
         NbtCompound chunkNbt = new NbtCompound();
         for (Map.Entry<Byte, Integer> entry : mchChunk.nbtPartVersionNumbers.entrySet()) {
@@ -122,13 +129,23 @@ public class ChunkStorage {
             // Restore this part of the chunk nbt
             partStorage.restorePart(chunkNbt, dataPartVersionNumber);
         }
-        return chunkNbt;
+
+        return new RegionFileChunk(chunkNbt, mchChunk.lastModified);
     }
 
-    public static class MchChunk {
+    public int getLastModified(int versionNumber) {
+        return this.getChunk(versionNumber).lastModified;
+    }
+
+    /**
+     * A specific version of a chunk.
+     */
+    private static class MchChunk {
         private final Map<Byte, Integer> nbtPartVersionNumbers;
+        private final int lastModified;
 
         public MchChunk(DataInput dataInput) throws IOException {
+            this.lastModified = dataInput.readInt();
             int size = dataInput.readInt();
             this.nbtPartVersionNumbers = new HashMap<>(size);
             for (int i = 0; i < size; i++) {
@@ -138,11 +155,13 @@ public class ChunkStorage {
             }
         }
 
-        public MchChunk() {
+        public MchChunk(int lastModified) {
+            this.lastModified = lastModified;
             this.nbtPartVersionNumbers = new HashMap<>();
         }
 
         public void write(DataOutput dataOutput) throws IOException {
+            dataOutput.writeInt(this.lastModified);
             dataOutput.writeInt(this.nbtPartVersionNumbers.size());
             for (Map.Entry<Byte, Integer> entry : this.nbtPartVersionNumbers.entrySet()) {
                 dataOutput.writeByte(entry.getKey());
@@ -161,12 +180,15 @@ public class ChunkStorage {
 
             MchChunk mchChunk = (MchChunk) o;
 
+            if (this.lastModified != mchChunk.lastModified) return false;
             return this.nbtPartVersionNumbers.equals(mchChunk.nbtPartVersionNumbers);
         }
 
         @Override
         public int hashCode() {
-            return this.nbtPartVersionNumbers.hashCode();
+            int result = this.nbtPartVersionNumbers.hashCode();
+            result = 31 * result + this.lastModified;
+            return result;
         }
 
         @Override

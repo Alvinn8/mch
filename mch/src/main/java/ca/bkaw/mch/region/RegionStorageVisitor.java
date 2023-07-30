@@ -3,8 +3,8 @@ package ca.bkaw.mch.region;
 import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.ChunkStorage;
+import ca.bkaw.mch.chunk.RegionFileChunk;
 import ca.bkaw.mch.nbt.NbtCompound;
-import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.Util;
@@ -121,7 +121,7 @@ public interface RegionStorageVisitor {
         if (input != null) {
             FileMagic.validate(input, MAGIC);
             int mchVersion = input.readInt();
-            MchVersion.validate(mchVersion, 3);
+            MchVersion.validate(mchVersion, 9);
         }
         if (output != null) {
             output.writeInt(MAGIC);
@@ -130,20 +130,17 @@ public interface RegionStorageVisitor {
         int index = 0;
         for (int chunkZ = 0; chunkZ < 32; chunkZ++) {
             for (int chunkX = 0; chunkX < 32; chunkX++) {
-                // The order is important here.
+                // The iteration order is important here.
 
-                int chunkLastModified = input != null ? input.readInt() : 0;
                 ChunkStorage chunkStorage = input != null ? new ChunkStorage(input) : new ChunkStorage();
 
-                Chunk chunk = new Chunk(index, chunkX, chunkZ, chunkLastModified, chunkStorage, output == null);
-
-                // Propagate IOException to method
+                Chunk chunk = new Chunk(index, chunkX, chunkZ, chunkStorage, output == null);
                 visitor.visit(chunk);
+                // Propagate IOException from visit to method
 
-                // The visitor may now have modified the last modified time and chunk storage.
+                // The visitor may now have modified the chunk storage by mutating the chunk.
 
                 if (output != null) {
-                    output.writeInt(chunk.lastModified);
                     chunk.chunkStorage.write(output);
                 }
 
@@ -163,13 +160,11 @@ public interface RegionStorageVisitor {
         private final int index, chunkX, chunkZ;
         private final ChunkStorage chunkStorage;
         private final boolean readOnly;
-        private int lastModified;
 
-        public Chunk(int index, int chunkX, int chunkZ, int lastModified, ChunkStorage chunkStorage, boolean readOnly) {
+        public Chunk(int index, int chunkX, int chunkZ, ChunkStorage chunkStorage, boolean readOnly) {
             this.index = index;
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
-            this.lastModified = lastModified;
             this.chunkStorage = chunkStorage;
             this.readOnly = readOnly;
         }
@@ -182,11 +177,11 @@ public interface RegionStorageVisitor {
          *
          * @param chunk The chunk nbt.
          */
-        public int store(NbtCompound chunk) {
+        public int store(NbtCompound chunk, int lastModified) {
             if (this.readOnly) {
                 throw new IllegalStateException("Can not store a chunk when using visitReadOnly");
             }
-            return this.chunkStorage.store(chunk);
+            return this.chunkStorage.store(chunk, lastModified);
         }
 
         /**
@@ -195,8 +190,12 @@ public interface RegionStorageVisitor {
          * @param versionNumber The chunk version number.
          * @return The chunk nbt at that snapshot.
          */
-        public NbtCompound restore(int versionNumber) {
+        public RegionFileChunk restore(int versionNumber) {
             return this.chunkStorage.restore(versionNumber);
+        }
+
+        public int getLastModified(int versionNumber) {
+            return this.chunkStorage.getLastModified(versionNumber);
         }
 
         /**
@@ -224,30 +223,6 @@ public interface RegionStorageVisitor {
          */
         public int getIndex() {
             return this.index;
-        }
-
-        /**
-         * Get when this chunk was marked as last modified, in epoch seconds.
-         * <p>
-         * This can be compared to the last modified time in the {@link McRegionFileReader}
-         * header by reading {@link McRegionFileReader#getChunkLastModified(int, int)}.
-         *
-         * @return The last modified time.
-         */
-        public int getLastModified() {
-            return this.lastModified;
-        }
-
-        /**
-         * Set when this chunk is marked as last modified, in epoch seconds.
-         *
-         * @param lastModified The last modified time.
-         */
-        public void setLastModified(int lastModified) {
-            if (this.readOnly) {
-                throw new IllegalStateException("Can not set last modified time when using visitReadOnly");
-            }
-            this.lastModified = lastModified;
         }
     }
 }
