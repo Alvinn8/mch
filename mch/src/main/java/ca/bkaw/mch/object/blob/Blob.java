@@ -26,4 +26,13 @@ public class Blob extends StorageObject {
     public String cat() {
         return this.bytes.length + " bytes";
     }
+
+    /**
+     * Get the blob bytes. Do not mutate.
+     *
+     * @return The bytes.
+     */
+    public byte[] getBytes() {
+        return this.bytes;
+    }
 }

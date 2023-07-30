@@ -7,10 +7,10 @@ import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
+import ca.bkaw.mch.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -26,9 +26,6 @@ import java.util.stream.Stream;
  * This is used when the world to track is on the same computer as the mch repository.
  */
 public class DirectWorldProvider implements WorldProvider {
-    public static final String NETHER_FOLDER = "DIM-1";
-    public static final String THE_END_FOLDER = "DIM1";
-
     private final Path path;
 
     public DirectWorldProvider(Path path) {
@@ -50,10 +47,10 @@ public class DirectWorldProvider implements WorldProvider {
         if (Files.isDirectory(this.path.resolve("region"))) {
             dimensions.add(Dimension.OVERWORLD);
         }
-        if (Files.isDirectory(this.path.resolve(NETHER_FOLDER))) {
+        if (Files.isDirectory(this.path.resolve(Util.NETHER_FOLDER))) {
             dimensions.add(Dimension.NETHER);
         }
-        if (Files.isDirectory(this.path.resolve(THE_END_FOLDER))) {
+        if (Files.isDirectory(this.path.resolve(Util.THE_END_FOLDER))) {
             dimensions.add(Dimension.THE_END);
         }
         // TODO custom dimensions
@@ -61,12 +58,7 @@ public class DirectWorldProvider implements WorldProvider {
     }
 
     private Path getDimensionPath(String dimension) {
-        return switch (dimension) {
-            case Dimension.OVERWORLD -> this.path;
-            case Dimension.NETHER -> this.path.resolve(NETHER_FOLDER);
-            case Dimension.THE_END -> this.path.resolve(THE_END_FOLDER);
-            default -> this.path.resolve("dimensions").resolve(dimension.replace(':', File.separatorChar));
-        };
+        return Util.getDimensionPath(this.path, dimension);
     }
 
     private long tryGetLastModifiedTime(Path path) {

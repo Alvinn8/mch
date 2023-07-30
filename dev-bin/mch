@@ -1,1 +1,4 @@
-java -jar $(dirname $0)/../mch-cli/build/libs/mch-cli-all.jar $*
+#!/bin/bash
+
+args=("$@")
+java -jar $(dirname $0)/../mch-cli/build/libs/mch-cli-all.jar "${args[@]}"

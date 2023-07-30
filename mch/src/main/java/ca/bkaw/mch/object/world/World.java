@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,5 +70,14 @@ public class World extends StorageObject {
     @Nullable
     public Reference20<Dimension> getDimension(String dimensionKey) {
         return this.dimensions.get(dimensionKey);
+    }
+
+    /**
+     * Get an unmodifiable view of the map of dimensions.
+     *
+     * @return The map.
+     */
+    public Map<String, Reference20<Dimension>> getDimensions() {
+        return Collections.unmodifiableMap(this.dimensions);
     }
 }

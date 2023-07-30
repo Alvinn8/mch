@@ -1,4 +1,4 @@
-package ca.bkaw.mch.command;
+package ca.bkaw.mch.operation;
 
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.object.ObjectStorageTypes;
@@ -11,11 +11,12 @@ import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import ca.bkaw.mch.region.MchRefRegionFile;
 import ca.bkaw.mch.region.MchRegionFileVisitor;
-import ca.bkaw.mch.region.mc.McRegionFile;
+import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.RandomAccessReader;
+import ca.bkaw.mch.util.Util;
 import ca.bkaw.mch.world.RegionFileInfo;
 import ca.bkaw.mch.world.WorldProvider;
 import org.jetbrains.annotations.Nullable;
@@ -24,6 +25,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Utility class for performing a commit.
+ */
 public class CommitOperation {
     public static void run(MchRepository repository, String commitMessage, boolean cache) throws IOException {
         // Read configuration and current commit from repository
@@ -87,12 +91,8 @@ public class CommitOperation {
                         continue;
                     }
 
-                    Path mchRegionFolderPath = repository.getRoot()
-                        .resolve("world")
-                        .resolve(trackedWorld.getId().asHex())
-                        .resolve("dimensions")
-                        .resolve(dimensionKey.replace(':', '_'))
-                        .resolve("region");
+                    Path mchRegionFolderPath =
+                        Util.getMchRegionFolderPath(repository, trackedWorld, dimensionKey);
 
                     Path mchRegionFilePath = mchRegionFolderPath
                         .resolve(regionFileInfo.fileName().replace(".mca", ".mchrc"));
@@ -113,7 +113,7 @@ public class CommitOperation {
                     int[] chunkVersionNumbers = new int[1024];
                     try (
                         RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName());
-                        McRegionFile mcRegionFile = new McRegionFile(reader)
+                        McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
                     ) {
                         MchRegionFileVisitor.visit(mchRegionFilePath, chunk -> {
                             if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {

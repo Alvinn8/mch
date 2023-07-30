@@ -2,20 +2,16 @@ package ca.bkaw.mch.test;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.chunk.ChunkStorage;
-import ca.bkaw.mch.command.CommitOperation;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtList;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.StorageObject;
-import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.region.MchRegionFile;
 import ca.bkaw.mch.region.MchRegionFileVisitor;
-import ca.bkaw.mch.region.mc.McRegionFile;
+import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
-import ca.bkaw.mch.repository.TrackedWorld;
-import ca.bkaw.mch.world.DirectWorldProvider;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -32,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,32 +36,24 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.zip.InflaterInputStream;
 
 public class TestMain {
-    public static void main9(String[] args) throws IOException {
-        MchRepository repository = new MchRepository(Path.of("run/mch"));
-
-        Sha1 sha1 = Sha1.fromString("cb8dd68e909826e2650aff5d22d611795df7d984");
-        DirectWorldProvider worldProvider = new DirectWorldProvider(Path.of("run/world"));
-        TrackedWorld trackedWorld = new TrackedWorld(sha1, worldProvider);
-
-        repository.getConfiguration().getTrackedWorlds().add(trackedWorld);
-
-        System.out.println("worldProvider.getDimensions() = " + worldProvider.getDimensions());
-        System.out.println("worldProvider.getRegionFiles(Dimension.OVERWORLD) = " + worldProvider.getRegionFiles(Dimension.OVERWORLD));
-
-        CommitOperation.run(repository, "Test commit", true);
+    public static void main(String[] args) throws IOException {
+        ByteArrayInputStream in = new ByteArrayInputStream(new byte[]{
+            0x78, (byte) 0x9C
+        });
+        InflaterInputStream inStream = new InflaterInputStream(in);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        inStream.transferTo(out);
+        System.out.println(Arrays.toString(out.toByteArray()));
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main9(String[] args) throws IOException {
         if (args.length < 3) {
             Scanner scanner = new Scanner(System.in);
             System.out.print("Enter arguments: ");
             args = scanner.nextLine().split(" ");
-        }
-        if ("commit".equals(args[0])) {
-            main9(args);
-            return;
         }
         if ("exit".equals(args[0])) {
             return;
@@ -113,8 +102,8 @@ public class TestMain {
         Thread.sleep(30_000);
         System.out.println("Starting!");
 
-        try (McRegionFile mcRegionFile1 = new McRegionFile(Path.of("mch/src/test/resources/region/r.0.0.mca"));
-             McRegionFile mcRegionFile2 = new McRegionFile(Path.of("mch/src/test/resources/region/r.0.0_v2.mca"))) {
+        try (McRegionFileReader mcRegionFile1 = new McRegionFileReader(Path.of("mch/src/test/resources/region/r.0.0.mca"));
+             McRegionFileReader mcRegionFile2 = new McRegionFileReader(Path.of("mch/src/test/resources/region/r.0.0_v2.mca"))) {
 
             MchRegionFileVisitor.visit(path, chunk -> {
                 if (!mcRegionFile1.hasChunk(chunk.getChunkX(), chunk.getChunkZ()) || mcRegionFile2.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
@@ -151,7 +140,7 @@ public class TestMain {
     private static void saveRegionFile(MchRegionFile mchRegionFile, String regionFileName) throws IOException {
         Path regionFilePath = Path.of("mch/src/test/resources/region/" + regionFileName);
         // Path regionFilePath = Path.of("../run/region/" + regionFileName);
-        try (McRegionFile mcRegionFile = new McRegionFile(regionFilePath)) {
+        try (McRegionFileReader mcRegionFile = new McRegionFileReader(regionFilePath)) {
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
                     if (mcRegionFile.hasChunk(x, z)) {
@@ -189,7 +178,7 @@ public class TestMain {
 
     private static NbtCompound getChunkNbt(String regionFileName) throws IOException {
         Path regionFilePath = Path.of("run/region/" + regionFileName);
-        try (McRegionFile regionFile = new McRegionFile(regionFilePath)) {
+        try (McRegionFileReader regionFile = new McRegionFileReader(regionFilePath)) {
             DataInputStream stream = regionFile.readChunk(0, 0);
             return NbtTag.readCompound(stream);
         }
@@ -238,8 +227,8 @@ public class TestMain {
             }
             modifiedRegionFilesCount++;
 
-            McRegionFile region1 = new McRegionFile(region1Path);
-            McRegionFile region2 = new McRegionFile(region2Path);
+            McRegionFileReader region1 = new McRegionFileReader(region1Path);
+            McRegionFileReader region2 = new McRegionFileReader(region2Path);
 
             stream.println("=== REGION " + region1Path.getFileName());
             System.out.println("Scanning " + region1Path.getFileName());

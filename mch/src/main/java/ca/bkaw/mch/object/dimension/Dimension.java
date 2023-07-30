@@ -12,6 +12,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Dimension extends StorageObject {
@@ -86,6 +87,19 @@ public class Dimension extends StorageObject {
         return null;
     }
 
+    public Reference20<Tree> getMiscellaneousFiles() {
+        return this.miscellaneousFiles;
+    }
+
+    /**
+     * Get an unmodifiable view of the region files in this dimension.
+     *
+     * @return The list of region files.
+     */
+    public List<RegionFileReference> getRegionFiles() {
+        return Collections.unmodifiableList(this.regionFiles);
+    }
+
     public static class RegionFileReference {
         private final int regionX;
         private final int regionZ;
@@ -111,6 +125,14 @@ public class Dimension extends StorageObject {
             dataOutput.writeInt(this.regionZ);
             dataOutput.writeInt(this.versionNumber);
             dataOutput.writeLong(this.lastModifiedTime);
+        }
+
+        public int getRegionX() {
+            return this.regionX;
+        }
+
+        public int getRegionZ() {
+            return this.regionZ;
         }
 
         public int getVersionNumber() {

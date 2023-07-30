@@ -3,7 +3,7 @@ package ca.bkaw.mch;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.nbt.NbtTests;
-import ca.bkaw.mch.region.mc.McRegionFile;
+import ca.bkaw.mch.region.mc.McRegionFileReader;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class TestUtils {
     public static NbtCompound getChunkNbt(String regionFileName) throws IOException {
         Path regionFilePath = Path.of("src/test/resources/region/" + regionFileName);
-        try (McRegionFile regionFile = new McRegionFile(regionFilePath)) {
+        try (McRegionFileReader regionFile = new McRegionFileReader(regionFilePath)) {
             DataInputStream stream = regionFile.readChunk(0, 0);
             return NbtTag.readCompound(stream);
         }

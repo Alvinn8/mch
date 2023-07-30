@@ -103,6 +103,18 @@ public class MchRepository {
     }
 
     /**
+     * Get the directory where the user initialized the repository.
+     * <p>
+     * This is the directory that contains the {@code mch} directory as gotten by
+     * {@link #getRoot()}.
+     *
+     * @return The project directory path.
+     */
+    public Path getProjectDirectory() {
+        return this.root.getParent();
+    }
+
+    /**
      * Get the {@link MchConfiguration configuration}.
      *
      * @return The configuration.

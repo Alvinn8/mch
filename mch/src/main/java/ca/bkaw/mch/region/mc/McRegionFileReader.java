@@ -13,7 +13,7 @@ import java.util.zip.InflaterInputStream;
 /**
  * An object that once created opens a region file for reading chunks.
  */
-public class McRegionFile implements AutoCloseable {
+public class McRegionFileReader implements AutoCloseable {
     public static final int CHUNK_COUNT = 32 * 32;
     public static final int SECTOR_SIZE = 4096;
 
@@ -21,11 +21,11 @@ public class McRegionFile implements AutoCloseable {
     private final int[] locations = new int[CHUNK_COUNT];
     private final int[] lastModified = new int[CHUNK_COUNT];
 
-    public McRegionFile(Path path) throws IOException {
+    public McRegionFileReader(Path path) throws IOException {
         this(RandomAccessReader.of(path));
     }
 
-    public McRegionFile(RandomAccessReader file) throws IOException {
+    public McRegionFileReader(RandomAccessReader file) throws IOException {
         this.file = file;
         for (int i = 0; i < CHUNK_COUNT; i++) {
             this.locations[i] = this.file.readInt();
@@ -35,7 +35,7 @@ public class McRegionFile implements AutoCloseable {
         }
     }
 
-    private static int getIndex(int chunkX, int chunkZ) {
+    static int getIndex(int chunkX, int chunkZ) {
         return (chunkX & 31) + (chunkZ & 31) * 32;
     }
 

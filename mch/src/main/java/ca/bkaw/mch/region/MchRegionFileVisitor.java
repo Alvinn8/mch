@@ -4,7 +4,7 @@ import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
-import ca.bkaw.mch.region.mc.McRegionFile;
+import ca.bkaw.mch.region.mc.McRegionFileReader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -106,7 +106,7 @@ public interface MchRegionFileVisitor {
                 int chunkLastModified = input != null ? input.readInt() : 0;
                 ChunkStorage chunkStorage = input != null ? new ChunkStorage(input) : new ChunkStorage();
 
-                Chunk chunk = new Chunk(index, chunkX, chunkZ, chunkLastModified, chunkStorage);
+                Chunk chunk = new Chunk(index, chunkX, chunkZ, chunkLastModified, chunkStorage, output == null);
 
                 // Propagate IOException to method
                 visitor.visit(chunk);
@@ -133,14 +133,16 @@ public interface MchRegionFileVisitor {
     class Chunk {
         private final int index, chunkX, chunkZ;
         private final ChunkStorage chunkStorage;
+        private final boolean readOnly;
         private int lastModified;
 
-        public Chunk(int index, int chunkX, int chunkZ, int lastModified, ChunkStorage chunkStorage) {
+        public Chunk(int index, int chunkX, int chunkZ, int lastModified, ChunkStorage chunkStorage, boolean readOnly) {
             this.index = index;
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
             this.lastModified = lastModified;
             this.chunkStorage = chunkStorage;
+            this.readOnly = readOnly;
         }
 
         /**
@@ -152,10 +154,20 @@ public interface MchRegionFileVisitor {
          * @param chunk The chunk nbt.
          */
         public int store(NbtCompound chunk) {
-            if (this.chunkStorage == null) {
+            if (this.readOnly) {
                 throw new IllegalStateException("Can not store a chunk when using visitReadOnly");
             }
             return this.chunkStorage.store(chunk);
+        }
+
+        /**
+         * Restore the chunk nbt at the specified version number.
+         *
+         * @param versionNumber The chunk version number.
+         * @return The chunk nbt at that snapshot.
+         */
+        public NbtCompound restore(int versionNumber) {
+            return this.chunkStorage.restore(versionNumber);
         }
 
         /**
@@ -188,8 +200,8 @@ public interface MchRegionFileVisitor {
         /**
          * Get when this chunk was marked as last modified, in epoch seconds.
          * <p>
-         * This can be compared to the last modified time in the {@link McRegionFile}
-         * header by reading {@link McRegionFile#getChunkLastModified(int, int)}.
+         * This can be compared to the last modified time in the {@link McRegionFileReader}
+         * header by reading {@link McRegionFileReader#getChunkLastModified(int, int)}.
          *
          * @return The last modified time.
          */
@@ -203,6 +215,9 @@ public interface MchRegionFileVisitor {
          * @param lastModified The last modified time.
          */
         public void setLastModified(int lastModified) {
+            if (this.readOnly) {
+                throw new IllegalStateException("Can not set last modified time when using visitReadOnly");
+            }
             this.lastModified = lastModified;
         }
     }

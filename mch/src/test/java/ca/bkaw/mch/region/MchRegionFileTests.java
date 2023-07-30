@@ -3,7 +3,7 @@ package ca.bkaw.mch.region;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtTag;
-import ca.bkaw.mch.region.mc.McRegionFile;
+import ca.bkaw.mch.region.mc.McRegionFileReader;
 import org.junit.jupiter.api.Test;
 
 import java.io.DataInputStream;
@@ -32,7 +32,7 @@ public class MchRegionFileTests {
     private void saveRegionFile(MchRegionFile mchRegionFile, String regionFileName) throws IOException {
         Path regionFilePath = Path.of("src/test/resources/region/" + regionFileName);
         // Path regionFilePath = Path.of("../run/region/" + regionFileName);
-        try (McRegionFile mcRegionFile = new McRegionFile(regionFilePath)) {
+        try (McRegionFileReader mcRegionFile = new McRegionFileReader(regionFilePath)) {
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
                     if (mcRegionFile.hasChunk(x, z)) {

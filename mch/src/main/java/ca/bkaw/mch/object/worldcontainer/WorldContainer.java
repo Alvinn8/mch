@@ -68,4 +68,8 @@ public class WorldContainer extends StorageObject {
     public Reference20<World> getWorld(Sha1 id) {
         return this.worlds.get(id);
     }
+
+    public Map<Sha1, Reference20<World>> getWorlds() {
+        return this.worlds;
+    }
 }

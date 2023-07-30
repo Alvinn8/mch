@@ -1,6 +1,6 @@
 package ca.bkaw.mch.cli;
 
-import ca.bkaw.mch.command.CommitOperation;
+import ca.bkaw.mch.operation.CommitOperation;
 import ca.bkaw.mch.repository.MchRepository;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;

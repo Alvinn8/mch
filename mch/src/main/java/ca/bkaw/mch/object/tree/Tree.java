@@ -10,6 +10,7 @@ import ca.bkaw.mch.object.blob.Blob;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -98,5 +99,23 @@ public class Tree extends StorageObject {
 
     public void addFile(String fileName, Reference20<Blob> blobReference) {
         this.blobs.put(fileName, blobReference);
+    }
+
+    /**
+     * Get an unmodifiable view of the map of subtrees.
+     *
+     * @return The map of subtrees.
+     */
+    public Map<String, Reference20<Tree>> getSubTrees() {
+        return Collections.unmodifiableMap(this.trees);
+    }
+
+    /**
+     * Get an unmodifiable view of the map of files in this tree.
+     *
+     * @return The map of blobs.
+     */
+    public Map<String, Reference20<Blob>> getFiles() {
+        return Collections.unmodifiableMap(this.blobs);
     }
 }

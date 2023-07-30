@@ -1,4 +1,4 @@
-package ca.bkaw.mch.cli;
+package ca.bkaw.mch.cli.world;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchConfiguration;
@@ -13,7 +13,7 @@ import picocli.CommandLine.Parameters;
 import java.io.IOException;
 import java.nio.file.Path;
 
-@Command(name = "add-world")
+@Command(name = "add")
 public class AddWorldCommand implements Runnable {
     @Inject
     MchRepository repository;
@@ -25,12 +25,14 @@ public class AddWorldCommand implements Runnable {
     public void run() {
         MchConfiguration configuration = repository.getConfiguration();
 
+        path = path.normalize();
         WorldProvider worldProvider = new DirectWorldProvider(path);
 
         Sha1 id = Sha1.randomSha1();
-        TrackedWorld trackedWorld = new TrackedWorld(id, worldProvider);
+        String name = path.getFileName().toString();
+        TrackedWorld trackedWorld = new TrackedWorld(id, name, worldProvider);
 
-        configuration.getTrackedWorlds().add(trackedWorld);
+        configuration.trackWorld(trackedWorld);
 
         try {
             repository.saveConfiguration();
