@@ -8,13 +8,15 @@ import ca.bkaw.mch.world.DirectWorldProvider;
 import ca.bkaw.mch.world.WorldProvider;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.ExitCode;
 import picocli.CommandLine.Parameters;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 
 @Command(name = "add")
-public class AddWorldCommand implements Runnable {
+public class AddWorldCommand implements Callable<Integer> {
     @Inject
     MchRepository repository;
 
@@ -22,11 +24,16 @@ public class AddWorldCommand implements Runnable {
     Path path;
 
     @Override
-    public void run() {
+    public Integer call() throws IOException {
         MchConfiguration configuration = repository.getConfiguration();
 
-        path = path.normalize();
+        path = path.toAbsolutePath().normalize();
         WorldProvider worldProvider = new DirectWorldProvider(path);
+
+        if (configuration.alreadyTracking(worldProvider)) {
+            System.err.println("That world is already being tracked my this repository.");
+            return ExitCode.USAGE;
+        }
 
         Sha1 id = Sha1.randomSha1();
         String name = path.getFileName().toString();
@@ -34,14 +41,10 @@ public class AddWorldCommand implements Runnable {
 
         configuration.trackWorld(trackedWorld);
 
-        try {
-            repository.saveConfiguration();
-        } catch (IOException e) {
-            System.err.println("Failed to save configuration.");
-            e.printStackTrace();
-            return;
-        }
+        repository.saveConfiguration();
 
-        System.out.println("Now tracking world with id " + id.asHex());
+        System.out.println("Now tracking world with name "+ trackedWorld.getName() +" and id " + id.asHex());
+
+        return ExitCode.OK;
     }
 }

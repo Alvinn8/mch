@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -119,5 +120,20 @@ public class DirectWorldProvider implements WorldProvider {
 
         // Save the tree
         return ObjectStorageTypes.TREE.save(tree, repository);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DirectWorldProvider that = (DirectWorldProvider) o;
+
+        return Objects.equals(this.path, that.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.path != null ? this.path.hashCode() : 0;
     }
 }

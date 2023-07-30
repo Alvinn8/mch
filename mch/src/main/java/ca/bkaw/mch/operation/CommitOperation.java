@@ -29,6 +29,8 @@ import java.nio.file.Path;
  */
 public class CommitOperation {
     public static void run(MchRepository repository, String commitMessage, boolean cache) throws IOException {
+        long start = System.currentTimeMillis();
+
         // Read configuration and current commit from repository
         MchConfiguration configuration = repository.getConfiguration();
         Reference20<Commit> currentCommitReference = repository.getHeadCommit();
@@ -186,6 +188,10 @@ public class CommitOperation {
         Reference20<Commit> commitReference = ObjectStorageTypes.COMMIT.save(commit, repository);
 
         repository.setHeadCommit(commitReference);
+
+        long end = System.currentTimeMillis();
+        long ms = end - start;
+        System.out.println("Done. Took: " + ms + " ms");
 
         System.out.println("commit hash: " + commitReference.getSha1().asHex());
     }

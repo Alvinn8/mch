@@ -114,7 +114,7 @@ public class RestoreCommand implements Callable<Integer> {
             }
         }
 
-        System.out.println("Restored commit " + commitHash + " to " + Path.of(".").relativize(path));
+        System.out.println("Restored commit " + commitHash + " to " + Path.of(".").toAbsolutePath().relativize(path.toAbsolutePath()));
 
         return ExitCode.OK;
     }
