@@ -11,8 +11,8 @@ import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
-import ca.bkaw.mch.region.MchRefRegionFile;
-import ca.bkaw.mch.region.MchRegionFileVisitor;
+import ca.bkaw.mch.region.MchRegionFile;
+import ca.bkaw.mch.region.RegionStorageVisitor;
 import ca.bkaw.mch.region.mc.McRegionFileWriter;
 import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
@@ -86,26 +86,27 @@ public class RestoreCommand implements Callable<Integer> {
                 Files.createDirectories(regionFolderPath);
                 for (Dimension.RegionFileReference regionFileReference : dimension.getRegionFiles()) {
 
-                    Path mchRegionFolderPath = Util.getMchRegionFolderPath(this.repository, trackedWorld, dimensionKey);
-
-                    String regionFileName = "r." + regionFileReference.getRegionX() + "." + regionFileReference.getRegionZ() + ".mca";
+                    String regionFileName = Util.formatRegionFileName(regionFileReference.getRegionX(), regionFileReference.getRegionZ(), ".mca");
                     System.out.println("    " + regionFileName);
 
-                    // TODO this is duplicate code from commit (kinda)
-                    Path mchRegionFilePath = mchRegionFolderPath
-                        .resolve(regionFileName.replace(".mca", ".mchrc"));
+                    Path regionStoragePath = RegionStorageVisitor.getPath(
+                        this.repository, trackedWorld, dimensionKey,
+                        regionFileReference.getRegionX(), regionFileReference.getRegionZ()
+                    );
 
-                    Path mchRefRegionFilePath = mchRegionFolderPath
-                        .resolve(regionFileName.replace(".mca", ".mchrv"));
+                    Path mchRegionFilePath = MchRegionFile.getPath(
+                        this.repository, trackedWorld, dimensionKey,
+                        regionFileReference.getRegionX(), regionFileReference.getRegionZ()
+                    );
 
                     Path mcRegionFilePath = regionFolderPath.resolve(regionFileName);
                     try (McRegionFileWriter regionFile = new McRegionFileWriter(mcRegionFilePath)) {
-                        int[] chunkVersionNumbers = MchRefRegionFile.read(mchRefRegionFilePath, regionFileReference.getVersionNumber());
-                        MchRegionFileVisitor.visitReadOnly(mchRegionFilePath, chunk -> {
+                        int[] chunkVersionNumbers = MchRegionFile.read(mchRegionFilePath, regionFileReference.getVersionNumber());
+                        RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
                             int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
                             if (chunkVersionNumber != 0) {
                                 NbtCompound chunkNbt = chunk.restore(chunkVersionNumber);
-                                regionFile.writeChunk(chunkNbt, chunk.getLastModified());
+                                regionFile.writeChunk(chunkNbt, chunk.getLastModified()); // TODO this is the wrong last modified time
                             }
                         });
                     }

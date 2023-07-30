@@ -9,14 +9,13 @@ import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
-import ca.bkaw.mch.region.MchRefRegionFile;
-import ca.bkaw.mch.region.MchRegionFileVisitor;
+import ca.bkaw.mch.region.MchRegionFile;
+import ca.bkaw.mch.region.RegionStorageVisitor;
 import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.RandomAccessReader;
-import ca.bkaw.mch.util.Util;
 import ca.bkaw.mch.world.RegionFileInfo;
 import ca.bkaw.mch.world.WorldProvider;
 import org.jetbrains.annotations.Nullable;
@@ -91,23 +90,24 @@ public class CommitOperation {
                         continue;
                     }
 
-                    Path mchRegionFolderPath =
-                        Util.getMchRegionFolderPath(repository, trackedWorld, dimensionKey);
+                    Path regionStoragePath = RegionStorageVisitor.getPath(
+                        repository, trackedWorld, dimensionKey,
+                        regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
+                    );
 
-                    Path mchRegionFilePath = mchRegionFolderPath
-                        .resolve(regionFileInfo.fileName().replace(".mca", ".mchrc"));
+                    Path mchRegionFilePath = MchRegionFile.getPath(
+                        repository, trackedWorld, dimensionKey,
+                        regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
+                    );
 
-                    Path mchRefRegionFilePath = mchRegionFolderPath
-                        .resolve(regionFileInfo.fileName().replace(".mca", ".mchrv"));
-
-                    Files.createDirectories(mchRegionFilePath.getParent());
+                    Files.createDirectories(regionStoragePath.getParent());
 
                     // Store each chunk and record the version numbers of all the chunks.
 
                     System.out.println("    " + regionFileInfo.fileName());
 
                     int[] currentChunkVersionNumbers = currentRegionFileInfo != null
-                        ? MchRefRegionFile.read(mchRefRegionFilePath, currentRegionFileInfo.getVersionNumber())
+                        ? MchRegionFile.read(mchRegionFilePath, currentRegionFileInfo.getVersionNumber())
                         : null;
 
                     int[] chunkVersionNumbers = new int[1024];
@@ -115,7 +115,7 @@ public class CommitOperation {
                         RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName());
                         McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
                     ) {
-                        MchRegionFileVisitor.visit(mchRegionFilePath, chunk -> {
+                        RegionStorageVisitor.visit(regionStoragePath, chunk -> {
                             if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
                                 int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
                                 if (currentChunkVersionNumbers != null
@@ -144,7 +144,7 @@ public class CommitOperation {
 
                     // Use the chunk version numbers to create a region file version number
 
-                    int regionFileVersionNumber = MchRefRegionFile.createUghImTired(mchRefRegionFilePath, chunkVersionNumbers);
+                    int regionFileVersionNumber = MchRegionFile.store(mchRegionFilePath, chunkVersionNumbers);
 
                     // Add the region file to the dimension object
                     Dimension.RegionFileReference regionFileReference = new Dimension.RegionFileReference(

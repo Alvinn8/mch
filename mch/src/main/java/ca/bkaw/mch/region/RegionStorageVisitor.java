@@ -5,6 +5,9 @@ import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.region.mc.McRegionFileReader;
+import ca.bkaw.mch.repository.MchRepository;
+import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,51 +20,80 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * A visitor that can read and write chunks from an mch region file in a streaming
- * way, preventing the need to load the entire mch region file into memory at once.
+ * A visitor that can read and write chunks from an mch region storage file in a
+ * streaming way, preventing the need to load the entire mch region storage into
+ * memory at once.
+ * <p>
+ * The region storage contains the {@link ChunkStorage}s that store the different
+ * version numbers of chunks. For the files that store the chunk version numbers
+ * to use for a specific region file version number, see {@link MchRegionFile}.
+ *
+ * @see MchRegionFile
  */
 @FunctionalInterface
-public interface MchRegionFileVisitor {
+public interface RegionStorageVisitor {
+    int MAGIC = FileMagic.REGION_STORAGE;
+
     /**
-     * Visit a chunk in an mch region file.
+     * Visit a chunk in an mch region storage file.
      * <p>
      * The visitor may read the current chunk and may store a new version of the chunk.
-     * After this method is called the chunk will be saved to the mch region file,
+     * After this method is called the chunk will be saved to the mch region storage,
      * including the new changes made by this method.
      *
      * @param chunk The chunk.
      * @throws IOException Throw if an I/O error occurs. An IOException thrown from this
      * method will cause the visit to stop and the {@link #visit(Path,
-     * MchRegionFileVisitor)} or {@link #visitReadOnly(Path, MchRegionFileVisitor)}
+     * RegionStorageVisitor)} or {@link #visitReadOnly(Path, RegionStorageVisitor)}
      * method will throw the IOException.
      */
-    void visit(MchRegionFileVisitor.Chunk chunk) throws IOException;
+    void visit(RegionStorageVisitor.Chunk chunk) throws IOException;
 
     /**
-     * Visit an mch region file for reading and writing.
+     * Get the path to where a region storage file will be stored in the repository.
      *
-     * @param mchRegionFilePath The path to the mch region file.
+     * @param repository The mch repository.
+     * @param trackedWorld The tracked world.
+     * @param dimensionKey The dimension of the world.
+     * @param regionX The region x coordinate.
+     * @param regionZ The region z coordinate.
+     * @return The region storage file path.
+     */
+    static Path getPath(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ) {
+        Path mchRegionFolderPath = Util.getMchRegionFolderPath(
+            repository, trackedWorld, dimensionKey
+        );
+        String fileName = Util.formatRegionFileName(
+            regionX, regionZ, ".mchrs.gz"
+        );
+        return mchRegionFolderPath.resolve(fileName);
+    }
+
+    /**
+     * Visit an mch region storage file for reading and writing.
+     *
+     * @param regionStoragePath The path to the mch region storage file.
      * @param visitor The visitor.
      * @throws IOException If an I/O error occurs.
      */
-    static void visit(Path mchRegionFilePath, MchRegionFileVisitor visitor) throws IOException {
-        performVisit(mchRegionFilePath, false, visitor);
+    static void visit(Path regionStoragePath, RegionStorageVisitor visitor) throws IOException {
+        performVisit(regionStoragePath, false, visitor);
     }
 
     /**
      * Visit an mch region file for reading.
      *
-     * @param mchRegionFilePath The mch region file.
+     * @param regionStoragePath The mch region file.
      * @param visitor The visitor.
      * @throws IOException If an I/O error occurs.
      */
-    static void visitReadOnly(Path mchRegionFilePath, MchRegionFileVisitor visitor) throws IOException {
-        performVisit(mchRegionFilePath, true, visitor);
+    static void visitReadOnly(Path regionStoragePath, RegionStorageVisitor visitor) throws IOException {
+        performVisit(regionStoragePath, true, visitor);
     }
 
-    private static void performVisit(Path path, boolean readOnly, MchRegionFileVisitor visitor) throws IOException {
+    private static void performVisit(Path path, boolean readOnly, RegionStorageVisitor visitor) throws IOException {
         Path tempOutputFile = readOnly ? null
-            : Files.createTempFile(path.getParent(), path.getFileName().toString(), ".mchr-temp");
+            : Files.createTempFile(path.getParent(), path.getFileName().toString(), ".mchrs-temp");
 
         try (
             DataInputStream input = Files.exists(path)
@@ -75,27 +107,22 @@ public interface MchRegionFileVisitor {
         }
 
         if (tempOutputFile != null) {
-            Path oldFilePath = path.getParent().resolve(path.getFileName() + "_old");
-            if (Files.exists(path)) {
-                Files.move(path, oldFilePath);
-            }
-            Files.move(tempOutputFile, path);
-            Files.deleteIfExists(oldFilePath);
+            Util.safeReplace(tempOutputFile, path);
         }
     }
 
     private static void performVisit(
         @Nullable DataInputStream input,
         @Nullable DataOutputStream output,
-        @NotNull MchRegionFileVisitor visitor
+        @NotNull RegionStorageVisitor visitor
     ) throws IOException {
         if (input != null) {
-            FileMagic.validate(input, FileMagic.REGION_STORAGE);
+            FileMagic.validate(input, MAGIC);
             int mchVersion = input.readInt();
             MchVersion.validate(mchVersion, 3);
         }
         if (output != null) {
-            output.writeInt(FileMagic.REGION_STORAGE);
+            output.writeInt(MAGIC);
             output.writeInt(MchVersion.VERSION_NUMBER);
         }
         int index = 0;
@@ -124,7 +151,7 @@ public interface MchRegionFileVisitor {
     }
 
     /**
-     * A chunk that is being visited in a {@link MchRegionFileVisitor}.
+     * A chunk that is being visited in a {@link RegionStorageVisitor}.
      * <p>
      * This object should not be stored and is intended to be garbage collected as
      * soon as the visit has ended. That way the entire contents of an mch region file

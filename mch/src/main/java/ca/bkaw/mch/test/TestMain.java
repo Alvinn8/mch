@@ -8,8 +8,7 @@ import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.StorageObject;
-import ca.bkaw.mch.region.MchRegionFile;
-import ca.bkaw.mch.region.MchRegionFileVisitor;
+import ca.bkaw.mch.region.RegionStorageVisitor;
 import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
 
@@ -105,7 +104,7 @@ public class TestMain {
         try (McRegionFileReader mcRegionFile1 = new McRegionFileReader(Path.of("mch/src/test/resources/region/r.0.0.mca"));
              McRegionFileReader mcRegionFile2 = new McRegionFileReader(Path.of("mch/src/test/resources/region/r.0.0_v2.mca"))) {
 
-            MchRegionFileVisitor.visit(path, chunk -> {
+            RegionStorageVisitor.visit(path, chunk -> {
                 if (!mcRegionFile1.hasChunk(chunk.getChunkX(), chunk.getChunkZ()) || mcRegionFile2.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
                     return;
                 }
@@ -120,38 +119,6 @@ public class TestMain {
         System.out.println("Done");
 
         Thread.sleep(1000_000);
-    }
-
-    public static void main5(String[] args) throws IOException, InterruptedException {
-        Path path = Path.of("mch/run/test-run/r.0.0.mchr");
-        Files.deleteIfExists(path);
-        Files.createDirectories(path.getParent());
-
-        MchRegionFile mchRegionFile = new MchRegionFile(path, path.getParent());
-
-        saveRegionFile(mchRegionFile, "r.0.0.mca");
-        saveRegionFile(mchRegionFile, "r.0.0_v2.mca");
-
-        mchRegionFile.write();
-
-        // Thread.sleep(1000_000);
-    }
-
-    private static void saveRegionFile(MchRegionFile mchRegionFile, String regionFileName) throws IOException {
-        Path regionFilePath = Path.of("mch/src/test/resources/region/" + regionFileName);
-        // Path regionFilePath = Path.of("../run/region/" + regionFileName);
-        try (McRegionFileReader mcRegionFile = new McRegionFileReader(regionFilePath)) {
-            for (int x = 0; x < 32; x++) {
-                for (int z = 0; z < 32; z++) {
-                    if (mcRegionFile.hasChunk(x, z)) {
-                        try (DataInputStream stream = mcRegionFile.readChunk(x, z)) {
-                            NbtCompound chunkNbt = NbtTag.readCompound(stream);
-                            mchRegionFile.store(chunkNbt);
-                        }
-                    }
-                }
-            }
-        }
     }
 
     public static void main4(String[] args) throws IOException {

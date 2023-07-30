@@ -35,7 +35,7 @@ public class McRegionFileReader implements AutoCloseable {
         }
     }
 
-    static int getIndex(int chunkX, int chunkZ) {
+    public static int getIndex(int chunkX, int chunkZ) {
         return (chunkX & 31) + (chunkZ & 31) * 32;
     }
 

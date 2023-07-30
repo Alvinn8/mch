@@ -38,10 +38,6 @@ public class ChunkStorageTests {
         ByteArrayInputStream inBytes = new ByteArrayInputStream(bytes);
         ChunkStorage readChunkStorage = new ChunkStorage(new DataInputStream(inBytes));
 
-        int size1 = chunkNbt.byteSize();
-        int size2 = chunkNbt2.byteSize();
-        System.out.println(size1 + " + " + size2 + " = " + (size1 + size2));
-
         NbtCompound restoredChunkNbt1 = readChunkStorage.restore(versionNumber1);
         assertEquals(chunkNbt, restoredChunkNbt1);
 
