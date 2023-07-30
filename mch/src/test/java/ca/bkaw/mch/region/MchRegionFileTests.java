@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class MchRegionFileTests {
     @Test
     void test() throws IOException {
-        Path path = Path.of("run/r.0.0.mchrv.gz");
+        Path path = Path.of("run/r.0.0.mchrv.zst");
         Files.deleteIfExists(path);
         Files.createDirectories(path.getParent());
 

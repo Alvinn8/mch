@@ -6,6 +6,8 @@ import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.Util;
+import com.github.luben.zstd.ZstdInputStream;
+import com.github.luben.zstd.ZstdOutputStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -15,8 +17,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * The file that stores the chunk version numbers to use for a specific region file
@@ -46,7 +46,7 @@ public class MchRegionFile {
             repository, trackedWorld, dimensionKey
         );
         String fileName = Util.formatRegionFileName(
-            regionX, regionZ, ".mchrv.gz"
+            regionX, regionZ, ".mchrv.zst"
         );
         return mchRegionFolderPath.resolve(fileName);
     }
@@ -75,9 +75,9 @@ public class MchRegionFile {
         int newRegionFileVersionNumber;
         try (
             DataInputStream input = Files.exists(path)
-                ? new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(path))))
+                ? new DataInputStream(new BufferedInputStream(new ZstdInputStream(Files.newInputStream(path))))
                 : null;
-            DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile))))
+            DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new ZstdOutputStream(Files.newOutputStream(tempOutputFile))))
         ) {
             if (input != null) {
                 FileMagic.validate(input, MAGIC);
@@ -154,7 +154,7 @@ public class MchRegionFile {
      * @throws IOException If an I/O error occurs.
      */
     public static int[] read(Path path, int regionFileVersionNumber) throws IOException {
-        try (DataInputStream input = new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(path))))) {
+        try (DataInputStream input = new DataInputStream(new BufferedInputStream(new ZstdInputStream(Files.newInputStream(path))))) {
             FileMagic.validate(input, MAGIC);
             int mchVersion = input.readInt();
             MchVersion.validate(mchVersion, 3);

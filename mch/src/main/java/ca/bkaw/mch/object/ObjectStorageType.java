@@ -2,6 +2,8 @@ package ca.bkaw.mch.object;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchRepository;
+import com.github.luben.zstd.ZstdInputStream;
+import com.github.luben.zstd.ZstdOutputStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -62,7 +64,7 @@ public class ObjectStorageType<T extends StorageObject> {
 
         Files.createDirectories(objectsPath);
         Path tempFile = Files.createTempFile(objectsPath, null, null);
-        try (DataOutputStream stream = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(tempFile)))) {
+        try (DataOutputStream stream = new DataOutputStream(new BufferedOutputStream(new ZstdOutputStream(Files.newOutputStream(tempFile))))) {
             storageObject.write(stream);
         }
 
@@ -71,7 +73,7 @@ public class ObjectStorageType<T extends StorageObject> {
         String group = hex.substring(0, 2);
 
         Path groupPath = objectsPath.resolve(group);
-        Path objectPath = groupPath.resolve(hex);
+        Path objectPath = groupPath.resolve(hex + ".zst");
 
         Files.createDirectories(groupPath);
         Files.move(tempFile, objectPath, StandardCopyOption.REPLACE_EXISTING);
@@ -93,13 +95,13 @@ public class ObjectStorageType<T extends StorageObject> {
         String group = hex.substring(0, 2);
 
         Path groupPath = this.getObjectsPath(repository).resolve(group);
-        Path objectPath = groupPath.resolve(hex);
+        Path objectPath = groupPath.resolve(hex + ".zst");
 
         if (Files.notExists(objectPath)) {
             throw new ObjectNotFoundException(hex, this.id);
         }
 
-        try (DataInputStream stream = new DataInputStream(new BufferedInputStream(Files.newInputStream(objectPath)))) {
+        try (DataInputStream stream = new DataInputStream(new BufferedInputStream(new ZstdInputStream(Files.newInputStream(objectPath))))) {
             return this.constructor.create(stream);
         }
     }

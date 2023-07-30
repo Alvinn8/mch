@@ -8,6 +8,8 @@ import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.Util;
+import com.github.luben.zstd.ZstdInputStream;
+import com.github.luben.zstd.ZstdOutputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,8 +20,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * A visitor that can read and write chunks from an mch region storage file in a
@@ -66,7 +66,7 @@ public interface RegionStorageVisitor {
             repository, trackedWorld, dimensionKey
         );
         String fileName = Util.formatRegionFileName(
-            regionX, regionZ, ".mchrs.gz"
+            regionX, regionZ, ".mchrs.zst"
         );
         return mchRegionFolderPath.resolve(fileName);
     }
@@ -99,10 +99,10 @@ public interface RegionStorageVisitor {
 
         try (
             DataInputStream input = Files.exists(path)
-                ? new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(path))))
+                ? new DataInputStream(new BufferedInputStream(new ZstdInputStream(Files.newInputStream(path))))
                 : null;
             DataOutputStream output = !readOnly
-                ? new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(tempOutputFile))))
+                ? new DataOutputStream(new BufferedOutputStream(new ZstdOutputStream(Files.newOutputStream(tempOutputFile))))
                 : null
         ) {
             performVisit(input, output, visitor);

@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RegionStorageTests {
-    Path path = Path.of("run/test-run/r.0.0.mchrs.gz");
+    Path path = Path.of("run/test-run/r.0.0.mchrs.zst");
 
     @Test
     void test() throws IOException {
