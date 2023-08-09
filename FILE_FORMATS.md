@@ -1,3 +1,5 @@
+> Warning: This file is incomplete
+> 
 # nbt storage
 ```
 4 bytes (signed integer) - mch version number

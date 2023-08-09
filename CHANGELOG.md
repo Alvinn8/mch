@@ -6,9 +6,10 @@ data, if it encounters a version number that indicates the data was stored in an
 older format, specific actions are taken to parse the data in the older format,
 ensuring backward compatibility. This section describes the changes that were
 made with each increment of the mch version number.
-## 2
-Current version number. Significant changes were made compared to the old
-prototype, hence the incremented version number.
+## 9
+Current version number.
+The version number was incremented multiple times during development to
+invalidate old testing runs.
 ## 1
 Old prototype of mch. The idea of how mch would work was very different and was
 not implemented, so there are no mch repositories with this version number, so
