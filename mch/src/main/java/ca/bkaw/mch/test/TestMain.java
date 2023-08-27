@@ -1,18 +1,21 @@
 package ca.bkaw.mch.test;
 
 import ca.bkaw.mch.Sha1;
-import ca.bkaw.mch.chunk.ChunkStorage;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtList;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.StorageObject;
-import ca.bkaw.mch.region.RegionStorageVisitor;
 import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -20,6 +23,9 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -38,7 +44,63 @@ import java.util.Set;
 import java.util.zip.InflaterInputStream;
 
 public class TestMain {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
+        FTPClient client = new FTPClient();
+        client.connect("REDACTED", 21);
+
+        Field f1 = FTP.class.getDeclaredField("_controlOutput_");
+        f1.setAccessible(true);
+        BufferedWriter actualWriter = (BufferedWriter) f1.get(client);
+        f1.set(client, new SpyWriter(actualWriter));
+
+        Field f2 = FTP.class.getDeclaredField("_controlInput_");
+        f2.setAccessible(true);
+        BufferedReader actualReader = (BufferedReader) f2.get(client);
+        f2.set(client, new SpyReader(actualReader));
+
+        boolean success = client.login("REDACTED", "REDACTED");
+        System.out.println("success = " + success);
+
+        client.enterLocalPassiveMode();
+
+        // System.out.println("client.list() = " + client.list());
+        client.changeWorkingDirectory("lobby");
+        System.out.println("client.printWorkingDirectory() = " + client.printWorkingDirectory());
+        System.out.println("client.listFiles() = " + Arrays.toString(client.listFiles()));
+        System.out.println("client.listDirectories() = " + Arrays.toString(client.listDirectories()));
+    }
+
+    static class SpyWriter extends BufferedWriter {
+
+        public SpyWriter(@NotNull Writer out) {
+            super(out);
+        }
+
+        @Override
+        public void write(@NotNull String str) throws IOException {
+            super.write(str);
+            if (str.endsWith("\n")) {
+                str = str.substring(0, str.length() - 1);
+            }
+            System.out.println("FTP > " + str);
+        }
+    }
+
+    static class SpyReader extends BufferedReader {
+
+        public SpyReader(@NotNull Reader in) {
+            super(in);
+        }
+
+        @Override
+        public String readLine() throws IOException {
+            String line = super.readLine();
+            System.out.println("FTP < " + line);
+            return line;
+        }
+    }
+
+    public static void main10(String[] args) throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[]{
             0x78, (byte) 0x9C
         });
@@ -86,7 +148,7 @@ public class TestMain {
 
         System.out.println(typeId + " " + sha1.asHex() + ":\n" + storageObject.cat());
 
-        main(new String[0]);
+        main10(new String[0]);
     }
 
     public static void main7(String[] args) {

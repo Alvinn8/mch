@@ -1,5 +1,6 @@
 package ca.bkaw.mch.cli;
 
+import ca.bkaw.mch.cli.ftp.FtpCommand;
 import ca.bkaw.mch.cli.world.WorldCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -7,6 +8,7 @@ import picocli.CommandLine.Command;
 @Command(name = "mch", subcommands = {
     CommitCommand.class,
     CatCommand.class,
+    FtpCommand.class,
     InitCommand.class,
     LogCommand.class,
     RestoreCommand.class,

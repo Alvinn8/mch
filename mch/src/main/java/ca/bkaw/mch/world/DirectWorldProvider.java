@@ -48,7 +48,7 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
     }
 
     @Override
-    public WorldProvider access() {
+    public WorldProvider access(MchRepository mchRepository) {
         // Nothing needs to connect, so we reuse the same instance.
         return this;
     }

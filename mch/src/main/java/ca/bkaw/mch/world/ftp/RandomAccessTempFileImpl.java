@@ -23,6 +23,6 @@ public class RandomAccessTempFileImpl extends RandomAccessReader.RandomAccessFil
     @Override
     public void close() throws IOException {
         super.close();
-        Files.delete(this.path);
+        Files.deleteIfExists(this.path);
     }
 }

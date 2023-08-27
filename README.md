@@ -18,7 +18,7 @@ To set up an mch repository inside a world folder that tracks the world, use the
 
 ```
 mch init
-mch world add .
+mch world add local .
 ```
 
 then use `mch commit` to commit a snapshot of the world to the repository.

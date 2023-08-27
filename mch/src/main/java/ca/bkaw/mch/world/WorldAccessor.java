@@ -1,12 +1,14 @@
 package ca.bkaw.mch.world;
 
+import ca.bkaw.mch.repository.MchRepository;
+
 import java.io.DataOutput;
 import java.io.IOException;
 
 /**
  * An object that stores information on how a world can be accessed.
  * <p>
- * To access the world, use {@link #access()}, which in some cases may connect to
+ * To access the world, use {@link #access(MchRepository)}, which in some cases may connect to
  * external file servers.
  */
 public interface WorldAccessor {
@@ -16,7 +18,7 @@ public interface WorldAccessor {
      * @return The {@link WorldProvider}.
      * @throws IOException If an I/O error occurs.
      */
-    WorldProvider access() throws IOException;
+    WorldProvider access(MchRepository mchRepository) throws IOException;
 
     /**
      * Get the id of this world accessor.

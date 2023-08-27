@@ -13,7 +13,6 @@ import ca.bkaw.mch.world.WorldProvider;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
-import org.apache.commons.net.ftp.FTPSClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,16 +42,7 @@ public class FtpWorldProvider implements WorldProvider, AutoCloseable {
      * @throws IOException If an I/O error occurs while connecting.
      */
     public FtpWorldProvider(FtpProfile profile, String worldPath) throws IOException {
-        this.ftp = profile.secure() ? new FTPSClient() : new FTPClient();
-
-        this.ftp.connect(profile.host(), profile.port());
-        int reply = this.ftp.getReplyCode();
-        if (!FTPReply.isPositiveCompletion(reply)) {
-            this.ftp.disconnect();
-            throw new IOException("Failed to connect to FTP Server");
-        }
-
-        this.ftp.login(profile.username(), profile.password());
+        this.ftp = profile.connect();
 
         this.ftp.changeWorkingDirectory(worldPath);
         this.worldPath = this.ftp.printWorkingDirectory();
@@ -61,6 +51,13 @@ public class FtpWorldProvider implements WorldProvider, AutoCloseable {
     @Override
     public List<String> getDimensions() throws IOException {
         FTPFile[] directories = this.ftp.listDirectories();
+        if (!FTPReply.isPositiveCompletion(this.ftp.getReplyCode())) {
+            System.out.println("this.ftp.listFiles() = " + Arrays.toString(this.ftp.listFiles()));
+            System.out.println("directories = " + Arrays.toString(directories));
+            System.out.println("this.ftp.printWorkingDirectory() = " + this.ftp.printWorkingDirectory());
+            throw new RuntimeException("Failed to list from FTP server. " + this.ftp.getReplyString());
+        }
+        this.ftp.retrieveFile("hello.txt", System.out);
         List<String> dimensions = new ArrayList<>(3);
         for (FTPFile directory : directories) {
             switch (directory.getName()) {

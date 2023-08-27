@@ -17,6 +17,7 @@ import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.world.RegionFileInfo;
+import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.WorldProvider;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,7 +46,8 @@ public class CommitOperation {
 
         for (TrackedWorld trackedWorld : configuration.getTrackedWorlds()) {
             // Loop trough each world that this mch repository is tracking.
-            try (WorldProvider worldProvider = trackedWorld.getWorldAccessor().access()) {
+            WorldAccessor worldAccessor = trackedWorld.getWorldAccessor();
+            try (WorldProvider worldProvider = worldAccessor.access(repository)) {
 
                 // The world object for this version of the tracked world.
                 World world = new World();

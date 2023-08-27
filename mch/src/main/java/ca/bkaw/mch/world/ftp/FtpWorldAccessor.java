@@ -1,5 +1,6 @@
 package ca.bkaw.mch.world.ftp;
 
+import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.WorldProvider;
 
@@ -13,27 +14,32 @@ import java.io.IOException;
 public class FtpWorldAccessor implements WorldAccessor {
     public static final byte ID = 2;
 
-    private final FtpProfile ftpProfile;
+    private final String ftpProfileName;
     private final String worldPath;
 
-    public FtpWorldAccessor(FtpProfile ftpProfile, String worldPath) {
-        this.ftpProfile = ftpProfile;
+    public FtpWorldAccessor(String ftpProfileName, String worldPath) {
+        this.ftpProfileName = ftpProfileName;
         this.worldPath = worldPath;
     }
 
     public FtpWorldAccessor(DataInput dataInput) throws IOException {
-        this.ftpProfile = new FtpProfile(dataInput);
+        this.ftpProfileName = dataInput.readUTF();
         this.worldPath = dataInput.readUTF();
     }
 
     @Override
-    public WorldProvider access() throws IOException {
-        return new FtpWorldProvider(this.ftpProfile, this.worldPath);
+    public WorldProvider access(MchRepository mchRepository) throws IOException {
+        FtpProfile ftpProfile = mchRepository.getConfiguration().getFtpProfile(this.ftpProfileName);
+        if (ftpProfile == null) {
+            throw new RuntimeException("No FTP profile with the name \"" + this.ftpProfileName + "\" exists.");
+        }
+        System.out.println("Connecting...");
+        return new FtpWorldProvider(ftpProfile, this.worldPath);
     }
 
     @Override
     public void write(DataOutput dataOutput) throws IOException {
-        this.ftpProfile.write(dataOutput);
+        dataOutput.writeUTF(this.ftpProfileName);
         dataOutput.writeUTF(this.worldPath);
     }
 
@@ -70,13 +76,13 @@ public class FtpWorldAccessor implements WorldAccessor {
 
         FtpWorldAccessor that = (FtpWorldAccessor) o;
 
-        if (!this.ftpProfile.equals(that.ftpProfile)) return false;
+        if (!this.ftpProfileName.equals(that.ftpProfileName)) return false;
         return this.normalizedWorldPath().equals(that.normalizedWorldPath());
     }
 
     @Override
     public int hashCode() {
-        int result = this.ftpProfile.hashCode();
+        int result = this.ftpProfileName.hashCode();
         result = 31 * result + this.normalizedWorldPath().hashCode();
         return result;
     }
