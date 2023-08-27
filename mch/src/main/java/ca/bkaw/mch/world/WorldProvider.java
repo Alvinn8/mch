@@ -12,8 +12,12 @@ import java.util.function.Predicate;
 
 /**
  * An object that provides mch with information about a world.
+ * <p>
+ * When this object is created through a {@link WorldAccessor} it can be considered
+ * as a session, and once access to the world is no longer necessary the world
+ * provider object should be closed.
  */
-public interface WorldProvider {
+public interface WorldProvider extends AutoCloseable {
     /**
      * Get the dimensions that this world has.
      *
@@ -52,4 +56,13 @@ public interface WorldProvider {
      * @throws IOException If an I/O error occurs.
      */
     Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate) throws IOException;
+
+    /**
+     * Close the world provider. Depending on the implementation, this method will
+     * disconnect from file servers, etc.
+     *
+     * @throws IOException If an I/O error occurs.
+     */
+    @Override
+    void close() throws IOException;
 }

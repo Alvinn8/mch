@@ -45,138 +45,139 @@ public class CommitOperation {
 
         for (TrackedWorld trackedWorld : configuration.getTrackedWorlds()) {
             // Loop trough each world that this mch repository is tracking.
-            WorldProvider worldProvider = trackedWorld.getWorldProvider();
+            try (WorldProvider worldProvider = trackedWorld.getWorldAccessor().access()) {
 
-            // The world object for this version of the tracked world.
-            World world = new World();
+                // The world object for this version of the tracked world.
+                World world = new World();
 
-            World currentWorld = resolve(repository, currentWorldContainer != null
-                ? currentWorldContainer.getWorld(trackedWorld.getId())
-                : null);
-
-            for (String dimensionKey : worldProvider.getDimensions()) {
-
-                // Track miscellaneous files
-                Reference20<Tree> treeReference = worldProvider.trackDirectoryTree(
-                    dimensionKey,
-                    repository,
-                    str -> switch (str) {
-                        case "region", "DIM1", "DIM-1", "dimensions", "mch" -> false;
-                        default -> true;
-                    }
-                );
-
-                // The dimension object for this version of the dimension.
-                Dimension dimension = new Dimension(treeReference);
-
-                Dimension currentDimension = resolve(repository, currentWorld != null
-                    ? currentWorld.getDimension(dimensionKey)
+                World currentWorld = resolve(repository, currentWorldContainer != null
+                    ? currentWorldContainer.getWorld(trackedWorld.getId())
                     : null);
 
-                // Store region files
+                for (String dimensionKey : worldProvider.getDimensions()) {
 
-                System.out.println("Processing dimension " + dimensionKey);
-
-                for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
-                    Dimension.RegionFileReference currentRegionFileInfo = currentDimension != null
-                        ? currentDimension.getRegionFile(regionFileInfo.getRegionX(), regionFileInfo.getRegionZ())
-                        : null;
-
-                    if (currentRegionFileInfo != null && currentRegionFileInfo.getLastModifiedTime() == regionFileInfo.lastModified()) {
-                        // The region file has not been modified since the last commit.
-                        // We do not need to read this region file since we know that it has not been
-                        // changed.
-                        // We can simply reference the same version number that the previous commit has.
-                        dimension.addRegionFile(currentRegionFileInfo);
-                        System.out.println("    Not modified: " + regionFileInfo.fileName());
-                        continue;
-                    }
-
-                    Path regionStoragePath = RegionStorageVisitor.getPath(
-                        repository, trackedWorld, dimensionKey,
-                        regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
+                    // Track miscellaneous files
+                    Reference20<Tree> treeReference = worldProvider.trackDirectoryTree(
+                        dimensionKey,
+                        repository,
+                        str -> switch (str) {
+                            case "region", "DIM1", "DIM-1", "dimensions", "mch" -> false;
+                            default -> true;
+                        }
                     );
 
-                    Path mchRegionFilePath = MchRegionFile.getPath(
-                        repository, trackedWorld, dimensionKey,
-                        regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
-                    );
+                    // The dimension object for this version of the dimension.
+                    Dimension dimension = new Dimension(treeReference);
 
-                    Files.createDirectories(regionStoragePath.getParent());
+                    Dimension currentDimension = resolve(repository, currentWorld != null
+                        ? currentWorld.getDimension(dimensionKey)
+                        : null);
 
-                    // Store each chunk and record the version numbers of all the chunks.
+                    // Store region files
 
-                    System.out.println("    " + regionFileInfo.fileName());
+                    System.out.println("Processing dimension " + dimensionKey);
 
-                    int[] currentChunkVersionNumbers = currentRegionFileInfo != null
-                        ? MchRegionFile.read(mchRegionFilePath, currentRegionFileInfo.getVersionNumber())
-                        : null;
+                    for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
+                        Dimension.RegionFileReference currentRegionFileInfo = currentDimension != null
+                            ? currentDimension.getRegionFile(regionFileInfo.getRegionX(), regionFileInfo.getRegionZ())
+                            : null;
 
-                    int[] chunkVersionNumbers = new int[1024];
-                    try (
-                        RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName());
-                        McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
-                    ) {
-                        RegionStorageVisitor.visit(regionStoragePath, chunk -> {
-                            if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
-                                // There is a chunk in the region file
+                        if (currentRegionFileInfo != null && currentRegionFileInfo.getLastModifiedTime() == regionFileInfo.lastModified()) {
+                            // The region file has not been modified since the last commit.
+                            // We do not need to read this region file since we know that it has not been
+                            // changed.
+                            // We can simply reference the same version number that the previous commit has.
+                            dimension.addRegionFile(currentRegionFileInfo);
+                            System.out.println("    Not modified: " + regionFileInfo.fileName());
+                            continue;
+                        }
 
-                                // Get when it was last modified
-                                int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
+                        Path regionStoragePath = RegionStorageVisitor.getPath(
+                            repository, trackedWorld, dimensionKey,
+                            regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
+                        );
 
-                                if (currentChunkVersionNumbers != null) {
-                                    // We can use the previous chunk version numbers to get the previous last
-                                    // modified time.
-                                    int currentChunkVersionNumber = currentChunkVersionNumbers[chunk.getIndex()];
-                                    if (chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
-                                        // The chunk has not been modified since the last commit.
-                                        // We do not need to store it again.
-                                        chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumber;
-                                        return;
+                        Path mchRegionFilePath = MchRegionFile.getPath(
+                            repository, trackedWorld, dimensionKey,
+                            regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
+                        );
+
+                        Files.createDirectories(regionStoragePath.getParent());
+
+                        // Store each chunk and record the version numbers of all the chunks.
+
+                        System.out.println("    " + regionFileInfo.fileName());
+
+                        int[] currentChunkVersionNumbers = currentRegionFileInfo != null
+                            ? MchRegionFile.read(mchRegionFilePath, currentRegionFileInfo.getVersionNumber())
+                            : null;
+
+                        int[] chunkVersionNumbers = new int[1024];
+                        try (
+                            RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName());
+                            McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
+                        ) {
+                            RegionStorageVisitor.visit(regionStoragePath, chunk -> {
+                                if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
+                                    // There is a chunk in the region file
+
+                                    // Get when it was last modified
+                                    int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
+
+                                    if (currentChunkVersionNumbers != null) {
+                                        // We can use the previous chunk version numbers to get the previous last
+                                        // modified time.
+                                        int currentChunkVersionNumber = currentChunkVersionNumbers[chunk.getIndex()];
+                                        if (chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
+                                            // The chunk has not been modified since the last commit.
+                                            // We do not need to store it again.
+                                            chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumber;
+                                            return;
+                                        }
                                     }
+
+                                    // Read the chunk nbt
+                                    NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
+
+                                    // Store the chunk
+                                    int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
+
+                                    // Save the version number of the chunk
+                                    chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;
+                                } else {
+                                    // There is no chunk. The version number is 0.
+                                    chunkVersionNumbers[chunk.getIndex()] = 0;
                                 }
+                            });
+                        }
 
-                                // Read the chunk nbt
-                                NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
+                        // Use the chunk version numbers to create a region file version number
 
-                                // Store the chunk
-                                int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
+                        int regionFileVersionNumber = MchRegionFile.store(mchRegionFilePath, chunkVersionNumbers);
 
-                                // Save the version number of the chunk
-                                chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;
-                            } else {
-                                // There is no chunk. The version number is 0.
-                                chunkVersionNumbers[chunk.getIndex()] = 0;
-                            }
-                        });
+                        // Add the region file to the dimension object
+                        Dimension.RegionFileReference regionFileReference = new Dimension.RegionFileReference(
+                            regionFileInfo.getRegionX(),
+                            regionFileInfo.getRegionZ(),
+                            regionFileVersionNumber,
+                            regionFileInfo.lastModified()
+                        );
+                        dimension.addRegionFile(regionFileReference);
                     }
 
-                    // Use the chunk version numbers to create a region file version number
-
-                    int regionFileVersionNumber = MchRegionFile.store(mchRegionFilePath, chunkVersionNumbers);
-
-                    // Add the region file to the dimension object
-                    Dimension.RegionFileReference regionFileReference = new Dimension.RegionFileReference(
-                        regionFileInfo.getRegionX(),
-                        regionFileInfo.getRegionZ(),
-                        regionFileVersionNumber,
-                        regionFileInfo.lastModified()
+                    // Save the dimension object and add it to the world
+                    world.addDimension(
+                        dimensionKey,
+                        ObjectStorageTypes.DIMENSION.save(dimension, repository)
                     );
-                    dimension.addRegionFile(regionFileReference);
                 }
 
-                // Save the dimension object and add it to the world
-                world.addDimension(
-                    dimensionKey,
-                    ObjectStorageTypes.DIMENSION.save(dimension, repository)
+                // Save the world object and add it to the world container
+                worldContainer.addWorld(
+                    trackedWorld.getId(),
+                    ObjectStorageTypes.WORLD.save(world, repository)
                 );
             }
-
-            // Save the world object and add it to the world container
-            worldContainer.addWorld(
-                trackedWorld.getId(),
-                ObjectStorageTypes.WORLD.save(world, repository)
-            );
         }
 
         // Save the world container object

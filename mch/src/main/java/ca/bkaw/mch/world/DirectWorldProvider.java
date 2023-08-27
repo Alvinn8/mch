@@ -25,8 +25,13 @@ import java.util.stream.Stream;
  * A world provider that reads from the a {@link Path}.
  * <p>
  * This is used when the world to track is on the same computer as the mch repository.
+ * <p>
+ * Instances of this class also act as the {@link WorldAccessor} instance since
+ * there is no need to "connect" when accessing a world.
  */
-public class DirectWorldProvider implements WorldProvider {
+public class DirectWorldProvider implements WorldAccessor, WorldProvider {
+    public static final byte ID = 1;
+
     private final Path path;
 
     public DirectWorldProvider(Path path) {
@@ -40,6 +45,20 @@ public class DirectWorldProvider implements WorldProvider {
 
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.writeUTF(this.path.toAbsolutePath().toString());
+    }
+
+    @Override
+    public WorldProvider access() {
+        // Nothing needs to connect, so we reuse the same instance.
+        return this;
+    }
+
+    @Override
+    public void close() {}
+
+    @Override
+    public byte getId() {
+        return ID;
     }
 
     @Override

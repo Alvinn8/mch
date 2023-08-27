@@ -3,7 +3,7 @@ package ca.bkaw.mch.repository;
 import ca.bkaw.mch.FileMagic;
 import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.Sha1;
-import ca.bkaw.mch.world.WorldProvider;
+import ca.bkaw.mch.world.WorldAccessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -100,12 +100,12 @@ public class MchConfiguration {
     /**
      * Check if a world is already being tracked.
      *
-     * @param worldProvider The world provider.
-     * @return Whether an equal world provider is already used somewhere.
+     * @param worldAccessor The world accessor.
+     * @return Whether an equal world accessor is already used somewhere.
      */
-    public boolean alreadyTracking(WorldProvider worldProvider) {
+    public boolean alreadyTracking(WorldAccessor worldAccessor) {
         for (TrackedWorld trackedWorld : this.trackedWorlds) {
-            if (trackedWorld.getWorldProvider().equals(worldProvider)) {
+            if (trackedWorld.getWorldAccessor().equals(worldAccessor)) {
                 return true;
             }
         }

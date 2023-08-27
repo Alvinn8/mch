@@ -2,7 +2,8 @@ package ca.bkaw.mch.repository;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.world.DirectWorldProvider;
-import ca.bkaw.mch.world.WorldProvider;
+import ca.bkaw.mch.world.WorldAccessor;
+import ca.bkaw.mch.world.ftp.FtpWorldAccessor;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -11,29 +12,30 @@ import java.io.IOException;
 public class TrackedWorld {
     private final Sha1 id;
     private String name;
-    private final WorldProvider worldProvider;
+    private final WorldAccessor worldAccessor;
 
-    public TrackedWorld(Sha1 id, String name, WorldProvider worldProvider) {
+    public TrackedWorld(Sha1 id, String name, WorldAccessor worldAccessor) {
         this.id = id;
         this.name = name;
-        this.worldProvider = worldProvider;
+        this.worldAccessor = worldAccessor;
     }
 
     public TrackedWorld(DataInput dataInput) throws IOException {
         this.id = Sha1.read(dataInput);
         this.name = dataInput.readUTF();
-        byte worldProviderType = dataInput.readByte();
-        if (worldProviderType != 1) {
-            throw new RuntimeException("Only world provider type 1 is supported");
-        }
-        this.worldProvider = new DirectWorldProvider(dataInput);
+        byte worldAccessorType = dataInput.readByte();
+        this.worldAccessor = switch (worldAccessorType) {
+            case DirectWorldProvider.ID -> new DirectWorldProvider(dataInput);
+            case FtpWorldAccessor.ID -> new FtpWorldAccessor(dataInput);
+            default -> throw new RuntimeException("Unknown world accessor type " + worldAccessorType);
+        };
     }
 
     public void write(DataOutput dataOutput) throws IOException {
         dataOutput.write(this.id.getBytes());
         dataOutput.writeUTF(this.name);
-        dataOutput.writeByte(1);
-        ((DirectWorldProvider) this.worldProvider).write(dataOutput);
+        dataOutput.writeByte(this.worldAccessor.getId());
+        this.worldAccessor.write(dataOutput);
     }
 
     public Sha1 getId() {
@@ -48,7 +50,7 @@ public class TrackedWorld {
         this.name = name;
     }
 
-    public WorldProvider getWorldProvider() {
-        return this.worldProvider;
+    public WorldAccessor getWorldAccessor() {
+        return this.worldAccessor;
     }
 }

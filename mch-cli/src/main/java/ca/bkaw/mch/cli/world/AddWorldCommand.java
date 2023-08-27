@@ -5,7 +5,7 @@ import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.world.DirectWorldProvider;
-import ca.bkaw.mch.world.WorldProvider;
+import ca.bkaw.mch.world.WorldAccessor;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.ExitCode;
@@ -28,16 +28,16 @@ public class AddWorldCommand implements Callable<Integer> {
         MchConfiguration configuration = repository.getConfiguration();
 
         path = path.toAbsolutePath().normalize();
-        WorldProvider worldProvider = new DirectWorldProvider(path);
+        WorldAccessor worldAccessor = new DirectWorldProvider(path);
 
-        if (configuration.alreadyTracking(worldProvider)) {
+        if (configuration.alreadyTracking(worldAccessor)) {
             System.err.println("That world is already being tracked my this repository.");
             return ExitCode.USAGE;
         }
 
         Sha1 id = Sha1.randomSha1();
         String name = path.getFileName().toString();
-        TrackedWorld trackedWorld = new TrackedWorld(id, name, worldProvider);
+        TrackedWorld trackedWorld = new TrackedWorld(id, name, worldAccessor);
 
         configuration.trackWorld(trackedWorld);
 
