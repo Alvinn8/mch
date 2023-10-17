@@ -30,6 +30,7 @@ public class ListFtpProfilesCommand implements Runnable {
             if (verbose) {
                 FtpProfile profile = entry.getValue();
                 System.out.print(" - " + profile.host() + " as " + profile.username());
+                System.out.print(" (" + (profile.secure() ? "secure" : "unencrypted") + ")");
             }
             System.out.println();
         }

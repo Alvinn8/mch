@@ -10,6 +10,7 @@ import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.Util;
 import ca.bkaw.mch.world.RegionFileInfo;
 import ca.bkaw.mch.world.WorldProvider;
+import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
@@ -43,6 +44,10 @@ public class FtpWorldProvider implements WorldProvider, AutoCloseable {
      */
     public FtpWorldProvider(FtpProfile profile, String worldPath) throws IOException {
         this.ftp = profile.connect();
+
+        // Ensure files are sent in binary to avoid line ending being changed for
+        // binary files.
+        this.ftp.setFileType(FTP.BINARY_FILE_TYPE);
 
         this.ftp.changeWorkingDirectory(worldPath);
         this.worldPath = this.ftp.printWorkingDirectory();
