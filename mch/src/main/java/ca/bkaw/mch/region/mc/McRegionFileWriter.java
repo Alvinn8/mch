@@ -58,6 +58,17 @@ public class McRegionFileWriter implements AutoCloseable {
         NbtInt xPos = (NbtInt) chunkNbt.get("xPos");
         NbtInt zPos = (NbtInt) chunkNbt.get("zPos");
         if (xPos == null || zPos == null) {
+            // Some older versions of the game store all data in a nested "Level" tag. While
+            // mch mainly targets newer versions of the game, there are still cases where a
+            // world needs to be restored that has some chunks that have not been touched in
+            // a long time and therefore have chunks in this old format, despite the world
+            // being loaded and saved in the latest version.
+            if (chunkNbt.get("Level") instanceof NbtCompound level) {
+                xPos = (NbtInt) level.get("xPos");
+                zPos = (NbtInt) level.get("zPos");
+            }
+        }
+        if (xPos == null || zPos == null) {
             throw new IllegalArgumentException("The provided chunk nbt does not specify its coordinates.");
         }
 
