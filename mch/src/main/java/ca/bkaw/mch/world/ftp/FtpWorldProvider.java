@@ -14,6 +14,7 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -109,13 +110,13 @@ public class FtpWorldProvider implements WorldProvider, AutoCloseable {
     }
 
     @Override
-    public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate) throws IOException {
+    public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
         String dimensionPath = this.getDimensionPath(dimension);
         this.ftp.changeWorkingDirectory(dimensionPath);
-        return this.trackDirectoryTree(repository, predicate);
+        return this.trackDirectoryTree(repository, predicate, currentTree);
     }
 
-    private Reference20<Tree> trackDirectoryTree(MchRepository repository, Predicate<String> predicate) throws IOException {
+    private Reference20<Tree> trackDirectoryTree(MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
         Tree tree = new Tree();
         for (FTPFile file : this.ftp.listFiles()) {
             String name = file.getName();
@@ -124,16 +125,26 @@ public class FtpWorldProvider implements WorldProvider, AutoCloseable {
             }
             if (file.isDirectory()) {
                 // Track subdirectories
+                Tree currentSubTree = currentTree != null ? currentTree.getSubTrees().get(name).resolve(repository) : null;
                 this.ftp.changeWorkingDirectory(name);
-                Reference20<Tree> subDirectoryReference = trackDirectoryTree(repository, str -> true);
+                Reference20<Tree> subDirectoryReference = trackDirectoryTree(repository, str -> true, currentSubTree);
                 tree.addSubTree(name, subDirectoryReference);
                 this.ftp.changeToParentDirectory();
             } else if (file.isFile()) {
                 // Track files
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                this.ftp.retrieveFile(name, stream);
-                Blob blob = new Blob(stream.toByteArray());
-                tree.addFile(name, ObjectStorageTypes.BLOB.save(blob, repository));
+                Tree.BlobReference currentBlobReference = currentTree != null ? currentTree.getFiles().get(name) : null;
+                long lastModified = file.getTimestampInstant().toEpochMilli();
+                if (currentBlobReference == null || currentBlobReference.lastModified() != lastModified) {
+                    // The file has changed since last commit. Save it anew.
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    this.ftp.retrieveFile(name, stream);
+                    Blob blob = new Blob(stream.toByteArray());
+                    Reference20<Blob> blobReference = ObjectStorageTypes.BLOB.save(blob, repository);
+                    tree.addFile(name, new Tree.BlobReference(blobReference, lastModified));
+                } else {
+                    // The file has not changed since last commit. Reuse the reference.
+                    tree.addFile(name, currentBlobReference);
+                }
             }
         }
 

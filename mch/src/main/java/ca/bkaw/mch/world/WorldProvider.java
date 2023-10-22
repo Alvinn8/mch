@@ -5,6 +5,7 @@ import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,10 +53,12 @@ public interface WorldProvider extends AutoCloseable {
      * @param repository The repository to save to.
      * @param dimension The dimension to track.
      * @param predicate A predicate that controls which files to include.
+     * @param currentTree The current state of the tree where blobs can be reused if
+     *                    they have not changed.
      * @return The reference to the created {@link Tree} object.
      * @throws IOException If an I/O error occurs.
      */
-    Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate) throws IOException;
+    Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException;
 
     /**
      * Close the world provider. Depending on the implementation, this method will

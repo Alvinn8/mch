@@ -121,11 +121,11 @@ public class RestoreCommand implements Callable<Integer> {
 
     private void restoreTree(Tree tree, Path path) throws IOException {
         // Restore files
-        for (Map.Entry<String, Reference20<Blob>> entry : tree.getFiles().entrySet()) {
+        for (Map.Entry<String, Tree.BlobReference> entry : tree.getFiles().entrySet()) {
             String fileName = entry.getKey();
             Path filePath = path.resolve(fileName);
 
-            Blob blob = entry.getValue().resolve(this.repository);
+            Blob blob = entry.getValue().reference().resolve(this.repository);
             Files.write(filePath, blob.getBytes());
         }
 

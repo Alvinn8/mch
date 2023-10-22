@@ -58,6 +58,16 @@ public class CommitOperation {
 
                 for (String dimensionKey : worldProvider.getDimensions()) {
 
+                    System.out.println("Processing dimension " + dimensionKey);
+
+                    Dimension currentDimension = resolve(repository, currentWorld != null
+                        ? currentWorld.getDimension(dimensionKey)
+                        : null);
+
+                    Tree currentMiscellaneousFiles = resolve(repository, currentDimension != null ?
+                        currentDimension.getMiscellaneousFiles()
+                        : null);
+
                     // Track miscellaneous files
                     Reference20<Tree> treeReference = worldProvider.trackDirectoryTree(
                         dimensionKey,
@@ -65,19 +75,14 @@ public class CommitOperation {
                         str -> switch (str) {
                             case "region", "DIM1", "DIM-1", "dimensions", "mch" -> false;
                             default -> true;
-                        }
+                        },
+                        currentMiscellaneousFiles
                     );
 
                     // The dimension object for this version of the dimension.
                     Dimension dimension = new Dimension(treeReference);
 
-                    Dimension currentDimension = resolve(repository, currentWorld != null
-                        ? currentWorld.getDimension(dimensionKey)
-                        : null);
-
                     // Store region files
-
-                    System.out.println("Processing dimension " + dimensionKey);
 
                     for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
                         Dimension.RegionFileReference currentRegionFileInfo = currentDimension != null

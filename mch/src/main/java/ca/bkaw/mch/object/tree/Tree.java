@@ -18,7 +18,7 @@ public class Tree extends StorageObject {
     public static final int MAGIC = FileMagic.TREE;
 
     private final Map<String, Reference20<Tree>> trees;
-    private final Map<String, Reference20<Blob>> blobs;
+    private final Map<String, BlobReference> blobs;
 
     public Tree() {
         this.trees = new LinkedHashMap<>();
@@ -47,9 +47,10 @@ public class Tree extends StorageObject {
         this.blobs = new LinkedHashMap<>(blobsSize);
         for (int i = 0; i < blobsSize; i++) {
             String fileName = dataInput.readUTF();
+            long lastModified = mchVersion > 10 ? dataInput.readLong() : 0;
             Reference20<Blob> blobReference = Reference20.read(dataInput, ObjectStorageTypes.BLOB);
 
-            this.blobs.put(fileName, blobReference);
+            this.blobs.put(fileName, new BlobReference(blobReference, lastModified));
         }
     }
 
@@ -63,9 +64,11 @@ public class Tree extends StorageObject {
             entry.getValue().write(dataOutput);
         }
         dataOutput.writeInt(this.blobs.size());
-        for (Map.Entry<String, Reference20<Blob>> entry : this.blobs.entrySet()) {
+        for (Map.Entry<String, BlobReference> entry : this.blobs.entrySet()) {
             dataOutput.writeUTF(entry.getKey());
-            entry.getValue().write(dataOutput);
+            BlobReference blobReference = entry.getValue();
+            dataOutput.writeLong(blobReference.lastModified);
+            blobReference.reference.write(dataOutput);
         }
     }
 
@@ -83,11 +86,14 @@ public class Tree extends StorageObject {
         }
         if (!this.blobs.isEmpty()) {
             str.append("files:\n");
-            for (Map.Entry<String, Reference20<Blob>> entry : this.blobs.entrySet()) {
+            for (Map.Entry<String, BlobReference> entry : this.blobs.entrySet()) {
                 str.append(entry.getKey());
                 str.append(":\t");
-                str.append(entry.getValue().getSha1().asHex());
-                str.append('\n');
+                BlobReference blobReference = entry.getValue();
+                str.append(blobReference.reference.getSha1().asHex());
+                str.append(" (last modified: ");
+                str.append(blobReference.lastModified);
+                str.append(")\n");
             }
         }
         return str.toString();
@@ -97,7 +103,7 @@ public class Tree extends StorageObject {
         this.trees.put(directoryName, subTreeReference);
     }
 
-    public void addFile(String fileName, Reference20<Blob> blobReference) {
+    public void addFile(String fileName, BlobReference blobReference) {
         this.blobs.put(fileName, blobReference);
     }
 
@@ -115,7 +121,9 @@ public class Tree extends StorageObject {
      *
      * @return The map of blobs.
      */
-    public Map<String, Reference20<Blob>> getFiles() {
+    public Map<String, BlobReference> getFiles() {
         return Collections.unmodifiableMap(this.blobs);
     }
+
+    public record BlobReference(Reference20<Blob> reference, long lastModified) {}
 }

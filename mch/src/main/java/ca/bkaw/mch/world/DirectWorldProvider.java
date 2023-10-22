@@ -8,6 +8,7 @@ import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.Util;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -112,7 +113,10 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
 
 
     @Override
-    public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate) throws IOException {
+    public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
+        // TODO the direct world provider currently does not use the currentTree to not
+        //  need to read files that haven't changed. This code could maybe be refactored
+        //  so there is less duplicate code in an implementations of trackDirectoryTree.
         return this.trackDirectoryTree(repository, this.getDimensionPath(dimension), predicate);
     }
 
@@ -131,8 +135,10 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
                 }  else if (Files.isRegularFile(path)) {
                     // Track files
                     byte[] bytes = Files.readAllBytes(path);
+                    long lastModified = Files.getLastModifiedTime(path).toMillis();
                     Blob blob = new Blob(bytes);
-                    tree.addFile(name, ObjectStorageTypes.BLOB.save(blob, repository));
+                    Reference20<Blob> blobReference = ObjectStorageTypes.BLOB.save(blob, repository);
+                    tree.addFile(name, new Tree.BlobReference(blobReference, lastModified));
                 }
             }
         }
