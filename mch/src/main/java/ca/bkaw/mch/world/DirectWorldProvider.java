@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -82,9 +83,9 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
         return Util.getDimensionPath(this.path, dimension);
     }
 
-    private long tryGetLastModifiedTime(Path path) {
+    private BasicFileAttributes tryGetLastModifiedTime(Path path) {
         try {
-            return Files.getLastModifiedTime(path).toMillis();
+            return Files.readAttributes(path, BasicFileAttributes.class);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -100,7 +101,12 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
             return files
                 .filter(path -> path.getFileName().toString().startsWith("r."))
                 .filter(path -> path.toString().endsWith(".mca"))
-                .map(path -> new RegionFileInfo(path.getFileName().toString(), tryGetLastModifiedTime(path)))
+                .map(path -> {
+                    BasicFileAttributes attributes = tryGetLastModifiedTime(path);
+                    long lastModified = attributes.lastModifiedTime().toMillis();
+                    long fileSize = attributes.size();
+                    return new RegionFileInfo(path.getFileName().toString(), lastModified, fileSize);
+                })
                 .toList();
         }
     }

@@ -93,8 +93,9 @@ public class FtpWorldProvider implements WorldProvider, AutoCloseable {
             )
             .map(file -> new RegionFileInfo(
                 file.getName(),
-                file.getTimestampInstant().toEpochMilli())
-            )
+                file.getTimestampInstant().toEpochMilli(),
+                file.getSize()
+            ))
             .toList();
     }
 

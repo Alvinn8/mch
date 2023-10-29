@@ -5,8 +5,9 @@ package ca.bkaw.mch.world;
  *
  * @param fileName The file name.
  * @param lastModified The last modified time of the region file.
+ * @param fileSize The size of the file on disk.
  */
-public record RegionFileInfo(String fileName, long lastModified) {
+public record RegionFileInfo(String fileName, long lastModified, long fileSize) {
     private int getRegionCoordinate(int index) {
         String str = this.fileName.substring("r.".length(), this.fileName.length() - ".mca".length());
         return Integer.parseInt(str.split("\\.")[index]);

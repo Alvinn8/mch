@@ -85,6 +85,13 @@ public class CommitOperation {
                     // Store region files
 
                     for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
+                        if (regionFileInfo.fileSize() == 0) {
+                            // I am not sure how or why these empty region files are created, but since they
+                            // are 0 bytes they do not contain valid data. Skip them to avoid crashing.
+                            System.out.println("    Skipping empty file (0 bytes): " + regionFileInfo.fileName());
+                            continue;
+                        }
+
                         Dimension.RegionFileReference currentRegionFileInfo = currentDimension != null
                             ? currentDimension.getRegionFile(regionFileInfo.getRegionX(), regionFileInfo.getRegionZ())
                             : null;
