@@ -4,6 +4,7 @@ import picocli.CommandLine.Command;
 
 @Command(name = "world", subcommands = {
     AddWorldCommand.class,
+    EditWorldCommand.class,
     GetWorldCommand.class,
     RenameWorldCommand.class,
 })

@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 public class DirectWorldProvider implements WorldAccessor, WorldProvider {
     public static final byte ID = 1;
 
-    private final Path path;
+    protected final Path path;
 
     public DirectWorldProvider(Path path) {
         this.path = path;
@@ -55,7 +55,7 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
     }
 
     @Override
-    public void close() {}
+    public void close() throws IOException {}
 
     @Override
     public byte getId() {

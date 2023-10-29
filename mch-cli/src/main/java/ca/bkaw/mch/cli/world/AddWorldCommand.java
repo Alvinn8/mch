@@ -8,6 +8,7 @@ import ca.bkaw.mch.world.DirectWorldProvider;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.ftp.FtpProfile;
 import ca.bkaw.mch.world.ftp.FtpWorldAccessor;
+import ca.bkaw.mch.world.zip.ZipWorldAccessor;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.ExitCode;
@@ -74,6 +75,20 @@ public class AddWorldCommand {
             name = name.substring(0, name.length() - 1);
         }
         name = name.substring(name.lastIndexOf('/') + 1);
+
+        return this.track(worldAccessor, name);
+    }
+
+    @Command(name = "zip")
+    public int zip(
+        @Parameters(index = "0", paramLabel = "zip file")
+        Path zipPath,
+        @Parameters(index = "1", paramLabel = "path of world inside zip", defaultValue = "/")
+        String pathInsideZip
+    ) throws IOException {
+        zipPath = zipPath.toAbsolutePath().normalize();
+        WorldAccessor worldAccessor = new ZipWorldAccessor(zipPath, pathInsideZip);
+        String name = zipPath.getFileName().toString();
 
         return this.track(worldAccessor, name);
     }
