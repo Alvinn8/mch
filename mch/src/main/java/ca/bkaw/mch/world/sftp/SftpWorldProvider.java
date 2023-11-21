@@ -1,4 +1,4 @@
-package ca.bkaw.mch.world.ftp;
+package ca.bkaw.mch.world.sftp;
 
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
@@ -10,62 +10,39 @@ import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.Util;
 import ca.bkaw.mch.world.RegionFileInfo;
 import ca.bkaw.mch.world.WorldProvider;
-import org.apache.commons.net.ftp.FTP;
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPReply;
+import ca.bkaw.mch.world.ftp.RandomAccessTempFileImpl;
+import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.sftp.RemoteResourceInfo;
+import net.schmizz.sshj.sftp.SFTPClient;
+import net.schmizz.sshj.xfer.FileSystemFile;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-/**
- * An active connection to an external FTP server that provides information about
- * a world by reading from an external FTP server.
- * <p>
- * Close the object to disconnect from the FTP server.
- */
-public class FtpWorldProvider implements WorldProvider {
-    private final FTPClient ftp;
+public class SftpWorldProvider implements WorldProvider {
+    private final SSHClient sshClient;
+    private final SFTPClient sftp;
     private final String worldPath;
 
-    /**
-     * Create a new provider and connect to the FTP server.
-     *
-     * @param profile Information on how to connect to the FTP server.
-     * @param worldPath The path where the world can be found on the remote server.
-     * @throws IOException If an I/O error occurs while connecting.
-     */
-    public FtpWorldProvider(FtpProfile profile, String worldPath) throws IOException {
-        this.ftp = profile.connect();
-
-        // Ensure files are sent in binary to avoid line ending being changed for
-        // binary files.
-        this.ftp.setFileType(FTP.BINARY_FILE_TYPE);
-
-        this.ftp.changeWorkingDirectory(worldPath);
-        this.worldPath = this.ftp.printWorkingDirectory();
+    public SftpWorldProvider(SftpProfile sftpProfile, MchRepository repository, String worldPath) throws IOException {
+        this.worldPath = worldPath;
+        this.sshClient = sftpProfile.connect(repository);
+        this.sftp = this.sshClient.newSFTPClient();
     }
 
     @Override
     public List<String> getDimensions() throws IOException {
-        FTPFile[] directories = this.ftp.listDirectories();
-        if (!FTPReply.isPositiveCompletion(this.ftp.getReplyCode())) {
-            System.out.println("this.ftp.listFiles() = " + Arrays.toString(this.ftp.listFiles()));
-            System.out.println("directories = " + Arrays.toString(directories));
-            System.out.println("this.ftp.printWorkingDirectory() = " + this.ftp.printWorkingDirectory());
-            throw new RuntimeException("Failed to list from FTP server. " + this.ftp.getReplyString());
-        }
-        this.ftp.retrieveFile("hello.txt", System.out);
+        List<RemoteResourceInfo> directories = this.sftp.ls(this.worldPath);
+
         List<String> dimensions = new ArrayList<>(3);
-        for (FTPFile directory : directories) {
+        for (RemoteResourceInfo directory : directories) {
             switch (directory.getName()) {
                 case "region" -> dimensions.add(Dimension.OVERWORLD);
                 case Util.NETHER_FOLDER -> dimensions.add(Dimension.NETHER);
@@ -88,13 +65,15 @@ public class FtpWorldProvider implements WorldProvider {
     @Override
     public List<RegionFileInfo> getRegionFiles(String dimension) throws IOException {
         String path = this.getDimensionPath(dimension) + "/region";
-        return Arrays.stream(this.ftp.listFiles(path,
-                file -> file.getName().startsWith("r.") && file.getName().endsWith(".mca"))
+
+        return this.sftp.ls(path,
+                file -> file.getName().startsWith("r.") && file.getName().endsWith(".mca")
             )
+            .stream()
             .map(file -> new RegionFileInfo(
                 file.getName(),
-                file.getTimestampInstant().toEpochMilli(),
-                file.getSize()
+                file.getAttributes().getMtime(),
+                file.getAttributes().getSize()
             ))
             .toList();
     }
@@ -102,24 +81,21 @@ public class FtpWorldProvider implements WorldProvider {
     @Override
     public RandomAccessReader openRegionFile(String dimension, String regionFileName) throws IOException {
         String path = this.getDimensionPath(dimension) + "/region/" + regionFileName;
-        Path tempFilePath = Files.createTempFile("ftp_" + regionFileName, ".mca");
-        try (OutputStream stream = Files.newOutputStream(tempFilePath)) {
-            this.ftp.retrieveFile(path, stream);
-        }
+        Path tempFilePath = Files.createTempFile("sftp_" + regionFileName, ".mca");
+        File tempFile = tempFilePath.toFile();
+        this.sftp.get(path, new FileSystemFile(tempFile));
         // RandomAccessTempFileImpl will delete the file when the reader is closed.
-        return new RandomAccessTempFileImpl(tempFilePath.toFile());
+        return new RandomAccessTempFileImpl(tempFile);
     }
 
     @Override
     public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
-        String dimensionPath = this.getDimensionPath(dimension);
-        this.ftp.changeWorkingDirectory(dimensionPath);
-        return this.trackDirectoryTree(repository, predicate, currentTree);
+        return this.trackDirectoryTreePath(this.getDimensionPath(dimension), repository, predicate, currentTree);
     }
 
-    private Reference20<Tree> trackDirectoryTree(MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
+    public Reference20<Tree> trackDirectoryTreePath(String path, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
         Tree tree = new Tree();
-        for (FTPFile file : this.ftp.listFiles()) {
+        for (RemoteResourceInfo file : this.sftp.ls(path)) {
             String name = file.getName();
             if (!predicate.test(name)) {
                 continue;
@@ -127,18 +103,16 @@ public class FtpWorldProvider implements WorldProvider {
             if (file.isDirectory()) {
                 // Track subdirectories
                 Tree currentSubTree = currentTree != null ? currentTree.getSubTrees().get(name).resolve(repository) : null;
-                this.ftp.changeWorkingDirectory(name);
-                Reference20<Tree> subDirectoryReference = trackDirectoryTree(repository, str -> true, currentSubTree);
+                Reference20<Tree> subDirectoryReference = trackDirectoryTreePath(file.getPath(), repository, str -> true, currentSubTree);
                 tree.addSubTree(name, subDirectoryReference);
-                this.ftp.changeToParentDirectory();
-            } else if (file.isFile()) {
+            } else if (file.isRegularFile()) {
                 // Track files
                 Tree.BlobReference currentBlobReference = currentTree != null ? currentTree.getFiles().get(name) : null;
-                long lastModified = file.getTimestampInstant().toEpochMilli();
+                long lastModified = file.getAttributes().getMtime();
                 if (currentBlobReference == null || currentBlobReference.lastModified() != lastModified) {
                     // The file has changed since last commit. Save it anew.
                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                    this.ftp.retrieveFile(name, stream);
+                    this.sftp.get(file.getPath(), new OutputStreamFileDest(stream));
                     Blob blob = new Blob(stream.toByteArray());
                     Reference20<Blob> blobReference = ObjectStorageTypes.BLOB.save(blob, repository);
                     tree.addFile(name, new Tree.BlobReference(blobReference, lastModified));
@@ -155,6 +129,7 @@ public class FtpWorldProvider implements WorldProvider {
 
     @Override
     public void close() throws IOException {
-        this.ftp.disconnect();
+        this.sshClient.close();
+        this.sftp.close();
     }
 }

@@ -8,6 +8,8 @@ import ca.bkaw.mch.world.DirectWorldProvider;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.ftp.FtpProfile;
 import ca.bkaw.mch.world.ftp.FtpWorldAccessor;
+import ca.bkaw.mch.world.sftp.SftpProfile;
+import ca.bkaw.mch.world.sftp.SftpWorldAccessor;
 import ca.bkaw.mch.world.zip.ZipWorldAccessor;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;
@@ -42,6 +44,15 @@ public class AddWorldCommand {
         return ExitCode.OK;
     }
 
+    private static String getNameFromPath(String remotePath) {
+        String name = remotePath;
+        if (name.endsWith("/")) {
+            name = name.substring(0, name.length() - 1);
+        }
+        name = name.substring(name.lastIndexOf('/') + 1);
+        return name;
+    }
+
     @Command(name = "local")
     public int local(
         @Parameters(index = "0", paramLabel = "world directory")
@@ -62,7 +73,7 @@ public class AddWorldCommand {
         String remotePath
     ) throws IOException {
         MchConfiguration configuration = repository.getConfiguration();
-        FtpProfile ftpProfile = configuration.getFtpProfile(ftpProfileName);
+        FtpProfile ftpProfile = configuration.getFtpProfiles().getProfile(ftpProfileName);
         if (ftpProfile == null) {
             System.err.println("No FTP profile with the name \"" + ftpProfileName + "\" exists.");
             System.err.println("Add it using \"mch ftp add " + ftpProfileName + "\"");
@@ -70,11 +81,7 @@ public class AddWorldCommand {
         }
 
         FtpWorldAccessor worldAccessor = new FtpWorldAccessor(ftpProfileName, remotePath);
-        String name = remotePath;
-        if (name.endsWith("/")) {
-            name = name.substring(0, name.length() - 1);
-        }
-        name = name.substring(name.lastIndexOf('/') + 1);
+        String name = getNameFromPath(remotePath);
 
         return this.track(worldAccessor, name);
     }
@@ -92,4 +99,26 @@ public class AddWorldCommand {
 
         return this.track(worldAccessor, name);
     }
+
+    @Command(name = "sftp")
+    public int sftp(
+        @Parameters(index = "0")
+        String sftpProfileName,
+        @Parameters(index = "1", description = "The path of the world on the remote server.")
+        String remotePath
+    ) throws IOException {
+        MchConfiguration configuration = repository.getConfiguration();
+        SftpProfile sftpProfile = configuration.getSftpProfiles().getProfile(sftpProfileName);
+        if (sftpProfile == null) {
+            System.err.println("No SFTP profile with the name \"" + sftpProfileName + "\" exists.");
+            System.err.println("Add it using \"mch sftp add " + sftpProfileName + "\"");
+            return ExitCode.USAGE;
+        }
+
+        SftpWorldAccessor worldAccessor = new SftpWorldAccessor(sftpProfileName, remotePath);
+        String name = getNameFromPath(remotePath);
+
+        return this.track(worldAccessor, name);
+    }
+
 }

@@ -6,6 +6,7 @@ import picocli.CommandLine.Command;
     AddFtpProfileCommand.class,
     EditFtpProfileCommand.class,
     ListFtpProfilesCommand.class,
+    RemoveFtpProfileCommand.class,
 })
 public class FtpCommand {
 }

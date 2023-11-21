@@ -5,6 +5,7 @@ import ca.bkaw.mch.MchVersion;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.ftp.FtpProfile;
+import ca.bkaw.mch.world.sftp.SftpProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,11 +23,13 @@ public class MchConfiguration {
     public static final int MAGIC = FileMagic.CONFIGURATION;
 
     private final List<TrackedWorld> trackedWorlds;
-    private final Map<String, FtpProfile> ftpProfiles;
+    private final Profiles<FtpProfile> ftpProfiles;
+    private final Profiles<SftpProfile> sftpProfiles;
 
     public MchConfiguration() {
         this.trackedWorlds = new ArrayList<>();
-        this.ftpProfiles = new HashMap<>();
+        this.ftpProfiles = new Profiles<>();
+        this.sftpProfiles = new Profiles<>();
     }
 
     public MchConfiguration(DataInput dataInput) throws IOException {
@@ -42,13 +45,20 @@ public class MchConfiguration {
         }
 
         int ftpProfilesSize = mchVersion > 9 ? dataInput.readInt() : 0;
-        this.ftpProfiles = new HashMap<>(ftpProfilesSize);
+        this.ftpProfiles = new Profiles<>(new HashMap<>(ftpProfilesSize));
         for (int i = 0; i < ftpProfilesSize; i++) {
             String profileName = dataInput.readUTF();
             FtpProfile ftpProfile = new FtpProfile(dataInput);
-            this.ftpProfiles.put(profileName, ftpProfile);
+            this.ftpProfiles.setProfile(profileName, ftpProfile);
         }
 
+        int sftpProfilesSize = mchVersion > 12 ? dataInput.readInt() : 0;
+        this.sftpProfiles = new Profiles<>(new HashMap<>(sftpProfilesSize));
+        for (int i = 0; i < sftpProfilesSize; i++) {
+            String profileName = dataInput.readUTF();
+            SftpProfile sftpProfile = new SftpProfile(dataInput);
+            this.sftpProfiles.setProfile(profileName, sftpProfile);
+        }
     }
 
     public void write(DataOutput dataOutput) throws IOException {
@@ -58,8 +68,15 @@ public class MchConfiguration {
         for (TrackedWorld trackedWorld : this.trackedWorlds) {
             trackedWorld.write(dataOutput);
         }
-        dataOutput.writeInt(this.ftpProfiles.size());
-        for (Map.Entry<String, FtpProfile> entry : this.ftpProfiles.entrySet()) {
+        Map<String, FtpProfile> ftpProfiles = this.ftpProfiles.getProfiles();
+        dataOutput.writeInt(ftpProfiles.size());
+        for (Map.Entry<String, FtpProfile> entry : ftpProfiles.entrySet()) {
+            dataOutput.writeUTF(entry.getKey());
+            entry.getValue().write(dataOutput);
+        }
+        Map<String, SftpProfile> sftpProfiles = this.sftpProfiles.getProfiles();
+        dataOutput.writeInt(sftpProfiles.size());
+        for (Map.Entry<String, SftpProfile> entry : sftpProfiles.entrySet()) {
             dataOutput.writeUTF(entry.getKey());
             entry.getValue().write(dataOutput);
         }
@@ -132,29 +149,21 @@ public class MchConfiguration {
         return false;
     }
 
-    public Map<String, FtpProfile> getFtpProfiles() {
-        return Collections.unmodifiableMap(this.ftpProfiles);
+    /**
+     * Get the FTP profiles.
+     *
+     * @return The FTP profiles.
+     */
+    public Profiles<FtpProfile> getFtpProfiles() {
+        return this.ftpProfiles;
     }
 
     /**
-     * Get an FTP profile by name.
+     * Get the SFTP profiles.
      *
-     * @param name The name of the ftp profile.
-     * @return The ftp profile, or null.
+     * @return The SFTP profiles.
      */
-    @Nullable
-    public FtpProfile getFtpProfile(String name) {
-        return this.ftpProfiles.get(name);
+    public Profiles<SftpProfile> getSftpProfiles() {
+        return this.sftpProfiles;
     }
-
-    /**
-     * Set an FTP profile by name.
-     *
-     * @param name The name.
-     * @param ftpProfile The FTP profile.
-     */
-    public void setFtpProfile(String name, @Nullable FtpProfile ftpProfile) {
-        this.ftpProfiles.put(name, ftpProfile);
-    }
-
 }

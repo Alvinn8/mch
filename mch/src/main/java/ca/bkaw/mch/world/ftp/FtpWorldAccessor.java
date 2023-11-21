@@ -29,7 +29,7 @@ public class FtpWorldAccessor implements WorldAccessor {
 
     @Override
     public WorldProvider access(MchRepository mchRepository) throws IOException {
-        FtpProfile ftpProfile = mchRepository.getConfiguration().getFtpProfile(this.ftpProfileName);
+        FtpProfile ftpProfile = mchRepository.getConfiguration().getFtpProfiles().getProfile(this.ftpProfileName);
         if (ftpProfile == null) {
             throw new RuntimeException("No FTP profile with the name \"" + this.ftpProfileName + "\" exists.");
         }
@@ -58,8 +58,7 @@ public class FtpWorldAccessor implements WorldAccessor {
      *
      * @return The normalized world path.
      */
-    private String normalizedWorldPath() {
-        String worldPath = this.worldPath;
+    public static String normalizedWorldPath(String worldPath) {
         if (worldPath.endsWith("/")) {
             worldPath = worldPath.substring(0, worldPath.length() - 1);
         }
@@ -67,6 +66,10 @@ public class FtpWorldAccessor implements WorldAccessor {
             worldPath = worldPath.substring("./".length());
         }
         return worldPath;
+    }
+
+    private String normalizedWorldPath() {
+        return normalizedWorldPath(this.worldPath);
     }
 
     @Override

@@ -4,6 +4,7 @@ import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.world.DirectWorldProvider;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.ftp.FtpWorldAccessor;
+import ca.bkaw.mch.world.sftp.SftpWorldAccessor;
 import ca.bkaw.mch.world.zip.ZipWorldAccessor;
 
 import java.io.DataInput;
@@ -29,6 +30,7 @@ public class TrackedWorld {
             case DirectWorldProvider.ID -> new DirectWorldProvider(dataInput);
             case FtpWorldAccessor.ID -> new FtpWorldAccessor(dataInput);
             case ZipWorldAccessor.ID -> new ZipWorldAccessor(dataInput);
+            case SftpWorldAccessor.ID -> new SftpWorldAccessor(dataInput);
             default -> throw new RuntimeException("Unknown world accessor type " + worldAccessorType);
         };
     }

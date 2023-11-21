@@ -1,6 +1,7 @@
 package ca.bkaw.mch.cli;
 
 import ca.bkaw.mch.cli.ftp.FtpCommand;
+import ca.bkaw.mch.cli.sftp.SftpCommand;
 import ca.bkaw.mch.cli.world.WorldCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -12,6 +13,7 @@ import picocli.CommandLine.Command;
     InitCommand.class,
     LogCommand.class,
     RestoreCommand.class,
+    SftpCommand.class,
     WorldCommand.class,
 })
 public class MchCli {

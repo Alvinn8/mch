@@ -1,8 +1,8 @@
-package ca.bkaw.mch.cli.ftp;
+package ca.bkaw.mch.cli.sftp;
 
 import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
-import ca.bkaw.mch.world.ftp.FtpProfile;
+import ca.bkaw.mch.world.sftp.SftpProfile;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -10,7 +10,7 @@ import picocli.CommandLine.Option;
 import java.util.Map;
 
 @Command(name = "list")
-public class ListFtpProfilesCommand implements Runnable {
+public class ListSftpProfilesCommand implements Runnable {
     @Inject
     MchRepository repository;
 
@@ -21,16 +21,15 @@ public class ListFtpProfilesCommand implements Runnable {
     public void run() {
         MchConfiguration configuration = repository.getConfiguration();
 
-        Map<String, FtpProfile> profiles = configuration.getFtpProfiles().getProfiles();
+        Map<String, SftpProfile> profiles = configuration.getSftpProfiles().getProfiles();
         System.out.println(
-            profiles.size() + " FTP " + (profiles.size() == 1 ? "profile" : "profiles") + ":"
+            profiles.size() + " SFTP " + (profiles.size() == 1 ? "profile" : "profiles") + ":"
         );
-        for (Map.Entry<String, FtpProfile> entry : profiles.entrySet()) {
+        for (Map.Entry<String, SftpProfile> entry : profiles.entrySet()) {
             System.out.print(entry.getKey());
             if (verbose) {
-                FtpProfile profile = entry.getValue();
+                SftpProfile profile = entry.getValue();
                 System.out.print(" - " + profile.host() + ":" + profile.port() + " as " + profile.username());
-                System.out.print(" (" + (profile.secure() ? "secure" : "unencrypted") + ")");
             }
             System.out.println();
         }

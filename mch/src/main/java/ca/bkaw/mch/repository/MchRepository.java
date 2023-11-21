@@ -96,7 +96,7 @@ public class MchRepository {
     }
 
     /**
-     * Get the path to the root of the repository.
+     * Get the path to the root of the repository. Also known as the "mch" directory.
      *
      * @return The path.
      */
