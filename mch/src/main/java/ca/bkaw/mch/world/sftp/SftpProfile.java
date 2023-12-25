@@ -4,7 +4,10 @@ import ca.bkaw.mch.repository.MchRepository;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.ConsoleKnownHostsVerifier;
+import net.schmizz.sshj.transport.verification.HostKeyVerifier;
+import net.schmizz.sshj.transport.verification.OpenSSHKnownHosts;
 
+import java.io.Console;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -31,7 +34,13 @@ public record SftpProfile(
     public SSHClient connect(MchRepository mchRepository) throws IOException {
         Path knownHostsPath = mchRepository.getRoot().resolve("known_hosts");
         SSHClient sshClient = new SSHClient();
-        sshClient.addHostKeyVerifier(new ConsoleKnownHostsVerifier(knownHostsPath.toFile(), System.console()));
+
+        Console console = System.console();
+        HostKeyVerifier hostKeyVerifier = console != null
+            ? new ConsoleKnownHostsVerifier(knownHostsPath.toFile(), console)
+            : new OpenSSHKnownHosts(knownHostsPath.toFile());
+
+        sshClient.addHostKeyVerifier(hostKeyVerifier);
         sshClient.connect(this.host, this.port);
         sshClient.authPassword(this.username, this.password);
         return sshClient;
