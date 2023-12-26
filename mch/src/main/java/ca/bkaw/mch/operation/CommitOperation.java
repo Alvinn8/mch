@@ -1,6 +1,8 @@
 package ca.bkaw.mch.operation;
 
 import ca.bkaw.mch.nbt.NbtCompound;
+import ca.bkaw.mch.nbt.NbtLong;
+import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
@@ -156,11 +158,20 @@ public class CommitOperation {
                                     // Read the chunk nbt
                                     NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
 
-                                    // Store the chunk
-                                    int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
+                                    NbtTag inhabitedTime = chunkNbt.get("InhabitedTime");
 
-                                    // Save the version number of the chunk
-                                    chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;
+                                    // TODO make this configurable per repo.
+                                    //  Default should probably be to be 100% lossless
+                                    if (inhabitedTime instanceof NbtLong nbtLong && nbtLong.getValue() <= 0) {
+                                        // Skipping chunk because it has not been inhabited by players.
+                                        chunkVersionNumbers[chunk.getIndex()] = 0;
+                                    } else {
+                                        // Store the chunk
+                                        int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
+
+                                        // Save the version number of the chunk
+                                        chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;
+                                    }
                                 } else {
                                     // There is no chunk. The version number is 0.
                                     chunkVersionNumbers[chunk.getIndex()] = 0;
