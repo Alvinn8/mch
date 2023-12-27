@@ -102,7 +102,8 @@ public class SftpWorldProvider implements WorldProvider {
             }
             if (file.isDirectory()) {
                 // Track subdirectories
-                Tree currentSubTree = currentTree != null ? currentTree.getSubTrees().get(name).resolve(repository) : null;
+                Reference20<Tree> currentSubTreeReference = currentTree != null ? currentTree.getSubTrees().get(name) : null;
+                Tree currentSubTree = currentSubTreeReference != null ? currentSubTreeReference.resolve(repository) : null;
                 Reference20<Tree> subDirectoryReference = trackDirectoryTreePath(file.getPath(), repository, str -> true, currentSubTree);
                 tree.addSubTree(name, subDirectoryReference);
             } else if (file.isRegularFile()) {
