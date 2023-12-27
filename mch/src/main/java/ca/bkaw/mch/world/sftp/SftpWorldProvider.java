@@ -100,6 +100,10 @@ public class SftpWorldProvider implements WorldProvider {
             if (!predicate.test(name)) {
                 continue;
             }
+            // TODO repository-wide "mchignore"
+            if (name.contains("ledger.sqlite")) {
+                continue;
+            }
             if (file.isDirectory()) {
                 // Track subdirectories
                 Reference20<Tree> currentSubTreeReference = currentTree != null ? currentTree.getSubTrees().get(name) : null;
