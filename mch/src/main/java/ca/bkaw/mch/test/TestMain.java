@@ -44,7 +44,15 @@ import java.util.Set;
 import java.util.zip.InflaterInputStream;
 
 public class TestMain {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException {
+        McRegionFileReader reader = new McRegionFileReader(Path.of("/Users/Alvin/Downloads/r.-2.-4.mca"));
+        System.out.println("reader.hasChunk(27, 27) = " + reader.hasChunk(27, 27));
+        System.out.println("reader.getChunkLastModified(27, 27) = " + reader.getChunkLastModified(27, 27));
+        NbtCompound chunkNbt = reader.readChunkNbt(27, 27);
+        System.out.println("chunkNbt = " + chunkNbt);
+    }
+
+    public static void main11(String[] args) throws Exception {
         FTPClient client = new FTPClient();
         client.connect("REDACTED", 21);
 

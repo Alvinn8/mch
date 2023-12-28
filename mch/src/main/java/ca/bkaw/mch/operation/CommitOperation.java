@@ -147,7 +147,7 @@ public class CommitOperation {
 
                                         // If there was no chunk in the last commit the version number is zero.
                                         // Otherwise, check if it has been changed since last commit.
-                                        if (currentChunkVersionNumber == 0 || chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
+                                        if (currentChunkVersionNumber != 0 && chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
                                             // The chunk has not been modified since the last commit.
                                             // We do not need to store it again.
                                             chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumber;
