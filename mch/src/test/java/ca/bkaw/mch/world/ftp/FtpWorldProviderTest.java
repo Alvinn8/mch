@@ -73,7 +73,7 @@ public class FtpWorldProviderTest {
 
     @Test
     void readRegionFile() throws IOException {
-        try (RandomAccessReader reader = worldProvider.openRegionFile(Dimension.OVERWORLD, "r.0.0.mca")) {
+        try (RandomAccessReader reader = worldProvider.openRegionFile(Dimension.OVERWORLD, "r.0.0.mca", 32)) {
             byte b = reader.readByte();
             assertEquals('a', b);
         }

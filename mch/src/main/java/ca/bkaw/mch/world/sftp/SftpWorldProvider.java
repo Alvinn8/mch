@@ -79,7 +79,7 @@ public class SftpWorldProvider implements WorldProvider {
     }
 
     @Override
-    public RandomAccessReader openRegionFile(String dimension, String regionFileName) throws IOException {
+    public RandomAccessReader openRegionFile(String dimension, String regionFileName, long estimatedSize) throws IOException {
         String path = this.getDimensionPath(dimension) + "/region/" + regionFileName;
         Path tempFilePath = Files.createTempFile("sftp_" + regionFileName, ".mca");
         File tempFile = tempFilePath.toFile();

@@ -130,7 +130,7 @@ public class CommitOperation {
 
                         int[] chunkVersionNumbers = new int[1024];
                         try (
-                            RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName());
+                            RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName(), regionFileInfo.fileSize());
                             McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
                         ) {
                             RegionStorageVisitor.visit(regionStoragePath, chunk -> {

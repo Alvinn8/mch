@@ -41,10 +41,11 @@ public interface WorldProvider extends AutoCloseable {
      *
      * @param dimension The dimension key.
      * @param regionFileName The file name of the region file.
+     * @param estimatedSize The estimated file size of the region file.
      * @return The reader.
      * @throws IOException If an I/O error occurs.
      */
-    RandomAccessReader openRegionFile(String dimension, String regionFileName) throws IOException;
+    RandomAccessReader openRegionFile(String dimension, String regionFileName, long estimatedSize) throws IOException;
 
     /**
      * Track a directory of files by creating {@link Tree} and {@link Blob} objects to

@@ -18,9 +18,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -100,14 +97,11 @@ public class FtpWorldProvider implements WorldProvider {
     }
 
     @Override
-    public RandomAccessReader openRegionFile(String dimension, String regionFileName) throws IOException {
+    public RandomAccessReader openRegionFile(String dimension, String regionFileName, long estimatedSize) throws IOException {
         String path = this.getDimensionPath(dimension) + "/region/" + regionFileName;
-        Path tempFilePath = Files.createTempFile("ftp_" + regionFileName, ".mca");
-        try (OutputStream stream = Files.newOutputStream(tempFilePath)) {
-            this.ftp.retrieveFile(path, stream);
-        }
-        // RandomAccessTempFileImpl will delete the file when the reader is closed.
-        return new RandomAccessTempFileImpl(tempFilePath.toFile());
+        ByteArrayOutputStream stream = new ByteArrayOutputStream((int) estimatedSize);
+        this.ftp.retrieveFile(path, stream);
+        return RandomAccessReader.of(stream.toByteArray());
     }
 
     @Override

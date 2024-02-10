@@ -112,7 +112,7 @@ public class DirectWorldProvider implements WorldAccessor, WorldProvider {
     }
 
     @Override
-    public RandomAccessReader openRegionFile(String dimension, String regionFileName) throws IOException {
+    public RandomAccessReader openRegionFile(String dimension, String regionFileName, long estimatedSize) throws IOException {
         Path path = this.getDimensionPath(dimension).resolve("region").resolve(regionFileName);
         return RandomAccessReader.of(path);
     }
