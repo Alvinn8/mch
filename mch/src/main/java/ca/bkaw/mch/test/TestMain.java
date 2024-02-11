@@ -44,7 +44,14 @@ import java.util.Set;
 import java.util.zip.InflaterInputStream;
 
 public class TestMain {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
+        Path home = Path.of(System.getProperty("user.home")).toAbsolutePath();
+        Path path = Path.of(".").toAbsolutePath();
+        Path relative = home.relativize(path);
+        System.out.println("relative.getName(0) = " + relative.getName(0));
+    }
+
+    public static void main12(String[] args) throws IOException {
         McRegionFileReader reader = new McRegionFileReader(Path.of("/Users/Alvin/Downloads/r.-2.-4.mca"));
         System.out.println("reader.hasChunk(27, 27) = " + reader.hasChunk(27, 27));
         System.out.println("reader.getChunkLastModified(27, 27) = " + reader.getChunkLastModified(27, 27));

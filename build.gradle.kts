@@ -16,6 +16,9 @@ tasks {
 subprojects {
     apply(plugin = "java-library")
 
+    group = "ca.bkaw.mch"
+    version = "0.1-SNAPSHOT"
+
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(17))
