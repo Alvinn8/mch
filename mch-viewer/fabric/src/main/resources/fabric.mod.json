@@ -1,0 +1,23 @@
+{
+    "schemaVersion": 1,
+    "id": "mch-viewer-fabric",
+    "version": "${version}",
+    "name": "mch-viewer-fabric",
+    "description": "mch history viewer",
+    "contact": {
+        "repo": "https://github.com/Alvinn8/mch"
+    },
+    "environment": "server",
+    "entrypoints": {
+        "main": [
+            "ca.bkaw.mch.viewer.fabric.MchViewerFabric"
+        ]
+    },
+    "mixins": [
+        "mch-viewer-fabric.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=${loader_version}",
+        "minecraft": ">=${minecraft_version}"
+    }
+}

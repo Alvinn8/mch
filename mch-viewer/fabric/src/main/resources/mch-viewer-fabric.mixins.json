@@ -1,0 +1,12 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "ca.bkaw.mch.viewer.fabric.mixin",
+    "compatibilityLevel": "JAVA_17",
+    "mixins": [
+        "LevelStorageAccessMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}
