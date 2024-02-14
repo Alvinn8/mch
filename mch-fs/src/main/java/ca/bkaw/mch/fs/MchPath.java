@@ -52,7 +52,7 @@ public class MchPath implements Path {
      * @return The non-mch path.
      */
     @Contract("!null -> !null; null -> null")
-    private @Nullable Path unwrap(@Nullable Path path) {
+    public static @Nullable Path unwrap(@Nullable Path path) {
         if (path == null) {
             return null;
         }

@@ -1,6 +1,6 @@
 package ca.bkaw.mch.fs;
 
-import ca.bkaw.mch.object.world.World;
+import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +16,6 @@ import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
@@ -26,7 +25,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,51 +32,39 @@ public class MchFileSystemProvider extends FileSystemProvider {
     public static final MchFileSystemProvider INSTANCE = new MchFileSystemProvider();
 
     public static final String SCHEME = "mch";
-    public static final String REPO_ENV_KEY = "mch_repository";
-    public static final String WORLD_ENV_KEY = "mch_world";
-    public static final String TRACKED_WORLD_ENV_KEY = "mch_tracked_world";
-
-    final Map<String, MchFileSystem> fileSystems = new HashMap<>();
 
     @Override
     public String getScheme() {
         return SCHEME;
     }
 
-    @Override
-    public FileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
-        synchronized (this.fileSystems) {
-            if (!(env.get(REPO_ENV_KEY) instanceof MchRepository repository)) {
-                throw new IllegalArgumentException("Please provide the mch repository as the \"" + REPO_ENV_KEY + "\" env key.");
-            }
-            if (!(env.get(WORLD_ENV_KEY) instanceof World world)) {
-                throw new IllegalArgumentException("Please provide the mch world object as the \"" + WORLD_ENV_KEY + "\" env key.");
-            }
-            if (!(env.get(TRACKED_WORLD_ENV_KEY) instanceof TrackedWorld trackedWorld)) {
-                throw new IllegalArgumentException("Please provide the tracked world as the \"" + TRACKED_WORLD_ENV_KEY + "\" env key.");
-            }
-            if (!SCHEME.equals(uri.getScheme())) {
-                throw new IllegalArgumentException("Expected \"" + SCHEME + "\" as the URI scheme.");
-            }
-            String path = uri.getPath();
-            Path root = Path.of(path);
-            if (!Files.isDirectory(root)) {
-                throw new IllegalArgumentException("Please make sure the provided path is a directory: " + root);
-            }
-
-            MchFileSystem fileSystem = this.fileSystems.get(path);
-            if (fileSystem != null) {
-                throw new FileSystemAlreadyExistsException(path);
-            }
-            fileSystem = new MchFileSystem(this, root, repository, trackedWorld, world);
-            this.fileSystems.put(path, fileSystem);
-            return fileSystem;
+    /**
+     * Create a new {@link MchFileSystem} that wraps paths on the real file system and
+     * provides files on-demand from the mch repository.
+     *
+     * @param root The root path to wrap, must be a directory that exists.
+     * @param repository The mch repository.
+     * @param trackedWorld The tracked world.
+     * @param dimensionKey The dimension key.
+     * @param dimension The dimension snapshot.
+     * @return The file system.
+     */
+    @NotNull
+    public MchFileSystem newFileSystem(Path root, MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, Dimension dimension) {
+        if (!Files.isDirectory(root)) {
+            throw new IllegalArgumentException("Please make sure the provided path is a directory: " + root);
         }
+        return new MchFileSystem(this, root, repository, trackedWorld, dimensionKey, dimension);
+    }
+
+    @Override
+    public MchFileSystem newFileSystem(URI uri, Map<String, ?> env) {
+        throw new UnsupportedOperationException("Please use the other newFileSystem method.");
     }
 
     @Override
     public FileSystem getFileSystem(URI uri) {
-        return this.fileSystems.get(uri.getPath());
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -161,7 +147,7 @@ public class MchFileSystemProvider extends FileSystemProvider {
     }
 
     @Override
-    public FileStore getFileStore(Path path) throws IOException {
+    public FileStore getFileStore(Path path) {
         throw new UnsupportedOperationException();
     }
 

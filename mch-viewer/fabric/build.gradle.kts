@@ -1,6 +1,7 @@
 plugins {
-    id("fabric-loom") version "1.5-SNAPSHOT"
     id("java")
+    id("fabric-loom") version "1.5-SNAPSHOT"
+    id("com.github.johnrengelman.shadow") version "7.0.0"
 }
 
 base {
@@ -21,11 +22,11 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
     // Fantasy for runtime worlds
-    modImplementation("xyz.nucleoid:fantasy:${property("fantasy_version")}")
+    include(modImplementation("xyz.nucleoid:fantasy:${property("fantasy_version")}")!!)
 
     // mch dependencies
-    implementation(project(":mch"))
-    implementation(project(":mch-fs"))
+    implementation(project(":mch"))!!
+    implementation(project(":mch-fs"))!!
     compileOnly("org.jetbrains:annotations:24.0.1")
 }
 
@@ -35,5 +36,36 @@ tasks {
             expand(getProperties())
             expand(mutableMapOf("version" to project.version))
         }
+    }
+
+    shadowJar {
+        archiveBaseName.set("mch-viewer-fabric-dev")
+        archiveClassifier.set("")
+
+        dependencies {
+            exclude("net.fabricmc:.*")
+            exclude("xyz.nucleoid:fantasy")
+            include(dependency("ca.bkaw.mch:.*"))
+            include(dependency("com.github.luben:zstd-jni:.*"))
+            include(dependency("commons-net:commons-net:.*"))
+            include(dependency("com.hierynomus:sshj:.*"))
+            exclude("/mappings/*")
+        }
+    }
+
+    val remappedShadowJar by registering(net.fabricmc.loom.task.RemapJarTask::class) {
+        dependsOn(shadowJar)
+        input = shadowJar.get().archiveFile
+        addNestedDependencies = true
+        archiveBaseName.set("mch-viewer-fabric")
+    }
+
+    assemble {
+        dependsOn(remappedShadowJar)
+    }
+
+    artifacts {
+        archives(remappedShadowJar)
+        shadow(shadowJar)
     }
 }

@@ -37,19 +37,24 @@ public class MchFileSystem extends FileSystem {
     private final MchFileSystemProvider provider;
     private final MchRepository repository;
     private TrackedWorld trackedWorld;
-    private World world;
+    private String dimensionKey;
+    private Dimension dimension;
     private final Path root;
     private Set<Path> restoredPaths;
 
-    public MchFileSystem(MchFileSystemProvider provider, Path root, MchRepository repository, TrackedWorld trackedWorld, World world) throws IOException {
+    public MchFileSystem(MchFileSystemProvider provider, Path root, MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, Dimension dimension) {
         if (root.getFileSystem() instanceof MchFileSystem) {
-            throw new IllegalArgumentException("path must correspond to a non-mch file system.");
+            throw new IllegalArgumentException("root path must correspond to a non-mch file system.");
+        }
+        if (!root.isAbsolute()) {
+            throw new IllegalArgumentException("root path must be absolute.");
         }
         this.provider = provider;
         this.root = root;
         this.repository = repository;
         this.trackedWorld = trackedWorld;
-        this.world = world;
+        this.dimensionKey = dimensionKey;
+        this.dimension = dimension;
         this.restoredPaths = new HashSet<>();
     }
 
@@ -57,11 +62,13 @@ public class MchFileSystem extends FileSystem {
      * Set the {@link World} object that this file system reads from.
      *
      * @param trackedWorld The tracked world.
-     * @param world The world snapshot.
+     * @param dimensionKey The dimension key.
+     * @param dimension The dimension snapshot.
      */
-    public void setWorld(TrackedWorld trackedWorld, World world) {
+    public void setWorld(TrackedWorld trackedWorld, String dimensionKey, Dimension dimension) {
         this.trackedWorld = trackedWorld;
-        this.world = world;
+        this.dimensionKey = dimensionKey;
+        this.dimension = dimension;
         this.restoredPaths = new HashSet<>();
     }
 
@@ -83,21 +90,8 @@ public class MchFileSystem extends FileSystem {
         System.out.println("DEBUG Restoring " + mchPath);
         Path relative = this.root.relativize(mchPath.path.toAbsolutePath());
 
-        // TODO custom dimensions
-        String dimensionKey = switch (relative.getName(0).getFileName().toString()) {
-            case Util.NETHER_FOLDER -> Dimension.NETHER;
-            case Util.THE_END_FOLDER -> Dimension.THE_END;
-            default -> Dimension.OVERWORLD;
-        };
-        int nameIndex = Dimension.OVERWORLD.equals(dimensionKey) ? 0 : 1;
 
-        Reference20<Dimension> dimensionRef = this.world.getDimension(dimensionKey);
-        if (dimensionRef == null) {
-            return;
-        }
-        Dimension dimension = dimensionRef.resolve(this.repository);
-
-        if ("region".equals(relative.getName(nameIndex).getFileName().toString())) {
+        if ("region".equals(relative.getName(0).getFileName().toString())) {
             String fileName = relative.getFileName().toString();
             if ("region".equals(fileName)) {
                 // lazy but works
@@ -117,11 +111,11 @@ public class MchFileSystem extends FileSystem {
             }
 
             Path regionStoragePath = RegionStorageVisitor.getPath(
-                this.repository, this.trackedWorld, dimensionKey, regionX, regionZ
+                this.repository, this.trackedWorld, this.dimensionKey, regionX, regionZ
             );
 
             Path mchRegionFilePath = MchRegionFile.getPath(
-                this.repository, this.trackedWorld, dimensionKey, regionX, regionZ
+                this.repository, this.trackedWorld, this.dimensionKey, regionX, regionZ
             );
 
             Path mcRegionFilePath = mchPath.path;
@@ -142,7 +136,7 @@ public class MchFileSystem extends FileSystem {
 
         // Non-region file.
         Tree tree = dimension.getMiscellaneousFiles().resolve(this.repository);
-        for (int i = nameIndex; i < relative.getNameCount() - 1; i++) {
+        for (int i = 0; i < relative.getNameCount() - 1; i++) {
             String name = relative.getName(i).toString();
             Reference20<Tree> subTreeRef = tree.getSubTrees().get(name);
             if (subTreeRef == null) {
@@ -172,22 +166,9 @@ public class MchFileSystem extends FileSystem {
         // Thread.dumpStack();
         Path relative = this.root.relativize(dir.path.toAbsolutePath().normalize());
 
-        // TODO custom dimensions
-        String dimensionKey = switch (relative.getName(0).getFileName().toString()) {
-            case Util.NETHER_FOLDER -> Dimension.NETHER;
-            case Util.THE_END_FOLDER -> Dimension.THE_END;
-            default -> Dimension.OVERWORLD;
-        };
-        int nameIndex = Dimension.OVERWORLD.equals(dimensionKey) ? 0 : 1;
 
-        Reference20<Dimension> dimensionRef = this.world.getDimension(dimensionKey);
-        if (dimensionRef == null) {
-            throw new NoSuchFileException(dir.toString());
-        }
-        Dimension dimension = dimensionRef.resolve(this.repository);
-
-        if ("region".equals(relative.getName(nameIndex).getFileName().toString())) {
-            if (relative.getNameCount() != nameIndex + 1) {
+        if ("region".equals(relative.getName(0).getFileName().toString())) {
+            if (relative.getNameCount() != 1) {
                 // No files in subdirectories of region.
                 return new DirectoryStream<>() {
                     @Override
@@ -215,7 +196,7 @@ public class MchFileSystem extends FileSystem {
 
         // Non-region file.
         Tree tree = dimension.getMiscellaneousFiles().resolve(this.repository);
-        for (int i = nameIndex; i < relative.getNameCount(); i++) {
+        for (int i = 0; i < relative.getNameCount(); i++) {
             String name = relative.getName(i).toString();
             if (name.isEmpty() || ".".equals(name)) {
                 continue;
