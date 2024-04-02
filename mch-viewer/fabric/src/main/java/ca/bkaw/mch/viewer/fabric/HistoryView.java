@@ -4,7 +4,6 @@ import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchFileSystemProvider;
 import ca.bkaw.mch.fs.MchPath;
-import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
@@ -77,8 +76,9 @@ public class HistoryView {
         this.update();
     }
 
-    public void setCommit(Commit commit) throws IOException {
+    public void setCommit(Commit commit, Sha1 commitHash) throws IOException {
         this.commit = commit;
+        this.commitHash = commitHash;
         // Update dimension view
         this.setDimensionKey(this.dimensionKey);
     }
@@ -176,5 +176,9 @@ public class HistoryView {
 
     public MchRepository getRepository() {
         return this.repository;
+    }
+
+    public CachedCommits getCachedCommits() {
+        return this.cachedCommits;
     }
 }

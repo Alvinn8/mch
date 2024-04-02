@@ -134,4 +134,29 @@ public class CachedCommits {
 
         return next;
     }
+
+    /**
+     * Get whether the specified commit has a commit after it.
+     *
+     * @param commit The commit.
+     * @return Whether a "next" commit exists.
+     * @throws IOException If an I/O error occurs.
+     */
+    public boolean hasNext(@NotNull CommitInfo commit) throws IOException {
+        Reference20<Commit> head = this.repository.getHeadCommit();
+        if (head == null) {
+            throw new IllegalArgumentException("Commit not in repository (empty repository).");
+        }
+        return head.getSha1().equals(commit.hash());
+    }
+
+    /**
+     * Check if the specified commit has a previous commit.
+     *
+     * @param commit The commit.
+     * @return Whether a previous commit exists.
+     */
+    public boolean hasPrevious(@NotNull CommitInfo commit) {
+        return commit.commit().getPreviousCommit() != null;
+    }
 }

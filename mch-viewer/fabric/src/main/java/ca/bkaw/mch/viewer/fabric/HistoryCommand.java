@@ -27,8 +27,6 @@ import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Deque;
-import java.util.LinkedList;
 
 public class HistoryCommand {
     public static final SimpleCommandExceptionType NOT_VIEWING_HISTORY = new SimpleCommandExceptionType(net.minecraft.network.chat.Component.literal(
@@ -112,51 +110,46 @@ public class HistoryCommand {
 
     private static int log(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
+        CachedCommits cachedCommits = historyView.getCachedCommits();
 
-        MchRepository repository = historyView.getRepository();
         Sha1 currentCommitHash = historyView.getCommitHash();
+        Commit currentCommit = historyView.getCommit();
+        CommitInfo current = new CommitInfo(currentCommit, currentCommitHash);
 
-        Reference20<Commit> commitReference = repository.getHeadCommit();
-        if (commitReference == null) {
-            ctx.getSource().sendFailure(net.minecraft.network.chat.Component.literal("Empty repository."));
-            return 0;
-        }
+        CommitInfo[] commits = new CommitInfo[11];
+        commits[5] = current;
 
-        Deque<CommitInfo> commits = new LinkedList<>();
-
-        while (commitReference != null) {
-            Commit commit = commitReference.resolve(repository);
-
-            commits.add(new CommitInfo(commit, commitReference.getSha1()));
-
-            // Only keep the 10 most recent commits in the queue
-            if (commits.size() > 10) {
-                commits.remove();
-            }
-
-            // We found the current commit. We can stop searching now.
-            if (currentCommitHash.equals(commitReference.getSha1())) {
+        // Fill [0-4]
+        CommitInfo next = current;
+        for (int i = 4; i >= 0; i--) {
+            next = cachedCommits.nextCommit(next);
+            if (next == null) {
                 break;
             }
-
-            commitReference = commit.getPreviousCommit();
+            commits[i] = next;
         }
 
-        for (int i = 0; i < 10 && commitReference != null; i++) {
-            Commit commit = commitReference.resolve(repository);
-            commits.add(new CommitInfo(commit, commitReference.getSha1()));
-            commitReference = commit.getPreviousCommit();
+        // Fill [6-10]
+        CommitInfo prev = current;
+        for (int i = 6; i <= 10; i++) {
+            prev = cachedCommits.previousCommit(prev);
+            if (prev == null) {
+                break;
+            }
+            commits[i] = prev;
         }
 
         TextComponent.Builder builder = Component.text();
 
-        builder.append(Component.text()
-            .content("====[ commits ]=====")
-            .color(NamedTextColor.YELLOW)
-            .append(Component.newline())
-        );
+        builder.append(Component.text("====[ ", NamedTextColor.YELLOW));
+        builder.append(Component.text("commits", NamedTextColor.GOLD));
+        builder.append(Component.text(" ]=====", NamedTextColor.YELLOW));
+        builder.append(Component.newline());
 
         for (CommitInfo commitInfo : commits) {
+            if (commitInfo == null) {
+                continue;
+            }
             Commit commit = commitInfo.commit();
             Sha1 hash = commitInfo.hash();
             boolean isCurrentCommit = hash.equals(currentCommitHash);
@@ -166,7 +159,7 @@ public class HistoryCommand {
                 row.append(
                     Component.text()
                         .content("-> ")
-                        .hoverEvent(HoverEvent.showText(Component.text("Current commit")))
+                        .hoverEvent(HoverEvent.showText(Component.text("You are currently viewing this commit")))
                 );
             }
             row.append(Component
@@ -181,17 +174,33 @@ public class HistoryCommand {
                 .content(DATE_FORMAT.format(date))
                 .hoverEvent(Component.text(DETAILED_DATE_FORMAT.format(date)))
             );
-            if (!commit.getMessage().isBlank()) {
-                row.append(Component.text(' ' + commit.getMessage().substring(0, 12)));
+            String message = commit.getMessage();
+            if (!message.isBlank()) {
+                if (message.length() > 13) {
+                    row.append(Component.text()
+                        .content(' ' + message.substring(0, 10) + "...")
+                        .hoverEvent(HoverEvent.showText(Component.text(message)))
+                    );
+                } else {
+                    row.append(Component.text(message));
+                }
             }
             row.append(Component.newline());
             builder.append(row);
         }
 
         builder.append(Component.text("====", NamedTextColor.YELLOW));
-        builder.append(Component.text("[ < ]", NamedTextColor.GOLD));
+        if (prev != null && cachedCommits.hasPrevious(prev)) {
+            builder.append(Component.text("[ < ]", NamedTextColor.GOLD));
+        } else {
+            builder.append(Component.text("[ < ]", NamedTextColor.GRAY));
+        }
         builder.append(Component.text("==", NamedTextColor.YELLOW));
-        builder.append(Component.text("[ > ]", NamedTextColor.GOLD));
+        if (next != null && cachedCommits.hasNext(next)) {
+            builder.append(Component.text("[ > ]", NamedTextColor.GOLD));
+        } else {
+            builder.append(Component.text("[ > ]", NamedTextColor.GRAY));
+        }
         builder.append(Component.text("=====", NamedTextColor.YELLOW));
         builder.append(Component.newline());
 
@@ -207,7 +216,9 @@ public class HistoryCommand {
         Reference20<Commit> ref = new Reference20<>(ObjectStorageTypes.COMMIT, sha1);
         Commit commit = ref.resolve(repository);
 
-        historyView.setCommit(commit);
+        historyView.setCommit(commit, ref.getSha1());
+
+        log(ctx);
 
         return 1;
     }
