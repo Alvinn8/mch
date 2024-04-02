@@ -27,8 +27,10 @@ import java.nio.file.Path;
 public class HistoryView {
     private final MchRepository repository;
     private final TrackedWorld trackedWorld;
+    private final CachedCommits cachedCommits;
     private RuntimeWorldHandle worldHandle;
     private ResourceLocation dimensionKey;
+    private Sha1 commitHash;
     private Commit commit;
     private Dimension dimensionView;
     private MchFileSystem fileSystem;
@@ -37,15 +39,20 @@ public class HistoryView {
     public HistoryView(MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld) throws IOException {
         this.repository = repository;
         this.trackedWorld = trackedWorld;
+        this.cachedCommits = new CachedCommits(repository);
 
-        // Reference20<Commit> headCommitRef = this.repository.getHeadCommit();
-        // if (headCommitRef == null) {
-        //     throw new IllegalArgumentException("Repository is empty");
-        // }
+        Reference20<Commit> headCommitRef = this.repository.getHeadCommit();
+        if (headCommitRef == null) {
+            throw new IllegalArgumentException("Repository is empty");
+        }
 
-        Reference20<Commit> commitRef = new Reference20<>(ObjectStorageTypes.COMMIT, Sha1.fromString("d73512c201f7358b34a77bce302f16f9b4a97d6d"));
+        Reference20<Commit> commitRef = headCommitRef;
+        // Reference20<Commit> commitRef = new Reference20<>(ObjectStorageTypes.COMMIT, Sha1.fromString("d73512c201f7358b34a77bce302f16f9b4a97d6d"));
 
+        this.commitHash = commitRef.getSha1();
         this.commit = commitRef.resolve(this.repository);
+
+        this.cachedCommits.setup(new CommitInfo(this.commit, this.commitHash));
 
         this.setDimensionKey(Level.OVERWORLD.location());
     }
@@ -68,6 +75,12 @@ public class HistoryView {
         }
         this.dimensionView = dimensionRef.resolve(this.repository);
         this.update();
+    }
+
+    public void setCommit(Commit commit) throws IOException {
+        this.commit = commit;
+        // Update dimension view
+        this.setDimensionKey(this.dimensionKey);
     }
 
     /**
@@ -98,6 +111,10 @@ public class HistoryView {
         return this.commit;
     }
 
+    public Sha1 getCommitHash() {
+        return this.commitHash;
+    }
+
     /**
      * Set the Fantasy {@link RuntimeWorldHandle} that this history view uses to render
      * the history.
@@ -112,6 +129,10 @@ public class HistoryView {
     }
 
     private void update() {
+        if (this.fileSystem == null) {
+            return;
+        }
+        this.fileSystem.setWorld(this.trackedWorld, this.dimensionKey.toString(), this.dimensionView);
         // TODO cause the game to clear chunk caches etc.
     }
 
@@ -151,5 +172,9 @@ public class HistoryView {
 
     public RuntimeWorldHandle getWorldHandle() {
         return this.worldHandle;
+    }
+
+    public MchRepository getRepository() {
+        return this.repository;
     }
 }

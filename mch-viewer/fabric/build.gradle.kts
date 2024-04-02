@@ -21,8 +21,9 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_version")}")
 
-    // Fantasy for runtime worlds
+    // mod dependencies
     include(modImplementation("xyz.nucleoid:fantasy:${property("fantasy_version")}")!!)
+    include(modImplementation("net.kyori:adventure-platform-fabric:${property("adventure_version")}")!!)
 
     // mch dependencies
     implementation(project(":mch"))!!

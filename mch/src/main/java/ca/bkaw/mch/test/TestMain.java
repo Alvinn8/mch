@@ -33,10 +33,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
@@ -45,6 +49,26 @@ import java.util.zip.InflaterInputStream;
 
 public class TestMain {
     public static void main(String[] args) {
+        List<Integer> test = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5, 6));
+        int index = test.indexOf(8);
+
+        test.add(index, 9);
+        System.out.println(test);
+    }
+
+    public static void main14(String[] args) {
+        Deque<Integer> lifoQueue = new LinkedList<>();
+
+        for (int i = 0; i < 50; i++) {
+            lifoQueue.add(i);
+            if (lifoQueue.size() > 10) {
+                lifoQueue.remove();
+            }
+        }
+        System.out.println(lifoQueue);
+    }
+
+    public static void main13(String[] args) {
         Path home = Path.of(System.getProperty("user.home")).toAbsolutePath();
         Path path = Path.of(".").toAbsolutePath();
         Path relative = home.relativize(path);

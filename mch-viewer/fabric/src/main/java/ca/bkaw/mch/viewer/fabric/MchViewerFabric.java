@@ -4,6 +4,8 @@ import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.kyori.adventure.platform.fabric.FabricServerAudiences;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -23,6 +25,7 @@ import java.util.Map;
 
 public class MchViewerFabric implements ModInitializer {
     private static MchViewerFabric instance;
+    private volatile FabricServerAudiences adventure;
 
     private final Map<ResourceKey<Level>, HistoryView> historyViews = new HashMap<>();
 
@@ -33,6 +36,9 @@ public class MchViewerFabric implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(
             (dispatcher, registryAccess, environment) -> HistoryCommand.register(dispatcher)
         );
+
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> this.adventure = FabricServerAudiences.of(server));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> this.adventure = null);
     }
 
     public static MchViewerFabric getInstance() {
@@ -49,6 +55,8 @@ public class MchViewerFabric implements ModInitializer {
                 server.registryAccess().registryOrThrow(Registries.BIOME)
             ));
 
+        // TODO rewrite this to use an mch-generated key instead so we don't have
+        //  to do this trickery. Then just delete it manually.
         RuntimeWorld.Constructor constructor = config.getWorldConstructor();
         config.setWorldConstructor((minecraftServer, levelKey, runtimeWorldConfig, style) -> {
             // Now that we know the random key that we were given by Fantasy, we can
