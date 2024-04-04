@@ -4,7 +4,11 @@
     "package": "ca.bkaw.mch.viewer.fabric.mixin",
     "compatibilityLevel": "JAVA_17",
     "mixins": [
-        "LevelStorageAccessMixin"
+        "LevelStorageAccessMixin",
+        "cacheclear.ChunkMapMixin",
+        "cacheclear.IOWorkerMixin",
+        "cacheclear.RegionFileStorageMixin",
+        "cacheclear.ServerChunkCacheMixin"
     ],
     "injectors": {
         "defaultRequire": 1

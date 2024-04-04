@@ -14,6 +14,8 @@ import ca.bkaw.mch.repository.TrackedWorld;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
@@ -128,12 +130,18 @@ public class HistoryView {
         this.worldHandle = world;
     }
 
-    private void update() {
+    private void update() throws IOException {
         if (this.fileSystem == null) {
             return;
         }
         this.fileSystem.setWorld(this.trackedWorld, this.dimensionKey.toString(), this.dimensionView);
-        // TODO cause the game to clear chunk caches etc.
+
+        // Clear chunk caches
+        ServerLevel level = this.worldHandle.asWorld();
+        level.save(null, true, true); // flush, disable saving
+        ServerChunkCache chunkCache = level.getChunkSource();
+        chunkCache.save(true); // save and flush
+        ((ClearableChunkCache) chunkCache).mch$clearChunkCache();
     }
 
     public Path wrapPath(Path original) {

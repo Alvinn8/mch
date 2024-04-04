@@ -73,6 +73,7 @@ public class MchViewerFabric implements ModInitializer {
 
         // Create the world.
         RuntimeWorldHandle worldHandle = fantasy.openTemporaryWorld(config);
+        worldHandle.asWorld().noSave = true;
         view.setWorldHandle(worldHandle);
 
         return view;

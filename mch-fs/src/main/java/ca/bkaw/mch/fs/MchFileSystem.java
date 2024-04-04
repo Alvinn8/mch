@@ -15,6 +15,7 @@ import ca.bkaw.mch.util.Util;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
@@ -65,10 +66,18 @@ public class MchFileSystem extends FileSystem {
      * @param dimensionKey The dimension key.
      * @param dimension The dimension snapshot.
      */
-    public void setWorld(TrackedWorld trackedWorld, String dimensionKey, Dimension dimension) {
+    public void setWorld(TrackedWorld trackedWorld, String dimensionKey, Dimension dimension) throws IOException {
         this.trackedWorld = trackedWorld;
         this.dimensionKey = dimensionKey;
         this.dimension = dimension;
+        for (Path path : this.restoredPaths) {
+            try {
+                Files.delete(path);
+            } catch (DirectoryNotEmptyException ignored) {
+                // Folders can stay. This is one IO call as supposed to first
+                // checking if it is a folder, then deleting.
+            }
+        }
         this.restoredPaths = new HashSet<>();
     }
 
