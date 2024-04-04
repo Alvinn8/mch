@@ -81,11 +81,11 @@ public class HistoryCommand {
     public static HistoryView getHistoryView(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         MchViewerFabric mchViewer = MchViewerFabric.getInstance();
         ResourceKey<Level> levelKey = ctx.getSource().getLevel().dimension();
-        HistoryView historyView = mchViewer.getHistoryView(levelKey);
+        DimensionView historyView = mchViewer.getDimensionView(levelKey);
         if (historyView == null) {
             throw NOT_VIEWING_HISTORY.create();
         }
-        return historyView;
+        return historyView.getParent();
     }
 
     public static int test(CommandContext<CommandSourceStack> ctx) throws IOException {
@@ -96,11 +96,17 @@ public class HistoryCommand {
         repository.readConfiguration();
         TrackedWorld trackedWorld = repository.getConfiguration().getTrackedWorld(Sha1.fromString("dde930208d9c6dd54e13ef13ad5be79a476b27bf"));
 
-        HistoryView view = mchViewer.view(server, repository, trackedWorld);
+        Reference20<Commit> headCommitRef = repository.getHeadCommit();
+        if (headCommitRef == null) {
+            throw new IllegalArgumentException("Repository is empty");
+        }
 
-        ctx.getSource().sendSuccess(Component.text(
-            "Created dimension with key " + view.getWorldHandle().getRegistryKey()
-        ), true);
+        Commit commit = headCommitRef.resolve(repository);
+        CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
+
+        HistoryView view = mchViewer.view(server, repository, trackedWorld, commitInfo);
+
+        // TODO send player to view
 
         return 1;
     }
@@ -112,10 +118,7 @@ public class HistoryCommand {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
 
-        Sha1 currentCommitHash = historyView.getCommitHash();
-        Commit currentCommit = historyView.getCommit();
-        CommitInfo current = new CommitInfo(currentCommit, currentCommitHash);
-
+        CommitInfo current = historyView.getCommit();
         CommitInfo[] commits = new CommitInfo[11];
         commits[5] = current;
 
@@ -152,7 +155,7 @@ public class HistoryCommand {
             }
             Commit commit = commitInfo.commit();
             Sha1 hash = commitInfo.hash();
-            boolean isCurrentCommit = hash.equals(currentCommitHash);
+            boolean isCurrentCommit = commitInfo.equals(current);
             TextComponent.Builder row = Component.text();
             row.clickEvent(ClickEvent.runCommand("/history commit " + hash.asHex()));
             if (isCurrentCommit) {
@@ -216,7 +219,7 @@ public class HistoryCommand {
         Reference20<Commit> ref = new Reference20<>(ObjectStorageTypes.COMMIT, sha1);
         Commit commit = ref.resolve(repository);
 
-        historyView.setCommit(commit, ref.getSha1());
+        historyView.setCommit(new CommitInfo(commit, ref.getSha1()));
 
         log(ctx);
 

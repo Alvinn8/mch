@@ -1,6 +1,6 @@
 package ca.bkaw.mch.viewer.fabric.mixin;
 
-import ca.bkaw.mch.viewer.fabric.HistoryView;
+import ca.bkaw.mch.viewer.fabric.DimensionView;
 import ca.bkaw.mch.viewer.fabric.MchViewerFabric;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.resources.ResourceKey;
@@ -16,16 +16,16 @@ public class LevelStorageAccessMixin {
     @ModifyReturnValue(method = "getDimensionPath", at = @At("RETURN"))
     public Path injected(Path original, ResourceKey<Level> levelKey) {
         MchViewerFabric mchViewer = MchViewerFabric.getInstance();
-        HistoryView historyView = mchViewer.getHistoryView(levelKey);
-        System.out.println(levelKey + ": " + (historyView == null ? "null" : historyView.isReady()));
-        if (historyView == null || !historyView.isReady()) {
+        DimensionView dimensionView = mchViewer.getDimensionView(levelKey);
+        System.out.println(levelKey + ": " + dimensionView);
+        if (dimensionView == null) {
             return original;
         }
 
         // The game requested the path of the dimension, but the dimension
         // is an mch-viewer world.
 
-        return historyView.wrapPath(original);
+        return dimensionView.wrapPath(original);
     }
 
 }

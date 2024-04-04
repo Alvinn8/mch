@@ -1,88 +1,111 @@
 package ca.bkaw.mch.viewer.fabric;
 
-import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchFileSystemProvider;
-import ca.bkaw.mch.fs.MchPath;
 import ca.bkaw.mch.object.Reference20;
-import ca.bkaw.mch.object.commit.Commit;
 import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerChunkCache;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelStorageSource;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import xyz.nucleoid.fantasy.Fantasy;
+import xyz.nucleoid.fantasy.RuntimeWorld;
+import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
+import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HistoryView {
     private final MchRepository repository;
     private final TrackedWorld trackedWorld;
     private final CachedCommits cachedCommits;
-    private RuntimeWorldHandle worldHandle;
-    private ResourceLocation dimensionKey;
-    private Sha1 commitHash;
-    private Commit commit;
-    private Dimension dimensionView;
-    private MchFileSystem fileSystem;
-    private Path rootPath;
+    private final Map<ResourceLocation, DimensionView> dimensionViews = new HashMap<>();
+    private CommitInfo commit;
 
-    public HistoryView(MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld) throws IOException {
+    public HistoryView(MchViewerFabric mod, MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld, CommitInfo commit) throws IOException {
         this.repository = repository;
         this.trackedWorld = trackedWorld;
-        this.cachedCommits = new CachedCommits(repository);
-
-        Reference20<Commit> headCommitRef = this.repository.getHeadCommit();
-        if (headCommitRef == null) {
-            throw new IllegalArgumentException("Repository is empty");
-        }
-
-        Reference20<Commit> commitRef = headCommitRef;
-        // Reference20<Commit> commitRef = new Reference20<>(ObjectStorageTypes.COMMIT, Sha1.fromString("d73512c201f7358b34a77bce302f16f9b4a97d6d"));
-
-        this.commitHash = commitRef.getSha1();
-        this.commit = commitRef.resolve(this.repository);
-
-        this.cachedCommits.setup(new CommitInfo(this.commit, this.commitHash));
-
-        this.setDimensionKey(Level.OVERWORLD.location());
-    }
-
-    /**
-     * Set the key of the dimension to view.
-     *
-     * @param dimensionKey The dimension key.
-     * @throws IOException If an I/O error occurs.
-     * @throws IllegalArgumentException If the dimension key was not present in the commit.
-     */
-    public void setDimensionKey(ResourceLocation dimensionKey) throws IOException {
-        this.dimensionKey = dimensionKey;
-        World world = this.getWorld();
-        Reference20<Dimension> dimensionRef = world.getDimension(dimensionKey.toString());
-        if (dimensionRef == null) {
-            throw new IllegalArgumentException(
-                "The dimension " + dimensionKey + " was not present in the commit."
-            );
-        }
-        this.dimensionView = dimensionRef.resolve(this.repository);
-        this.update();
-    }
-
-    public void setCommit(Commit commit, Sha1 commitHash) throws IOException {
         this.commit = commit;
-        this.commitHash = commitHash;
-        // Update dimension view
-        this.setDimensionKey(this.dimensionKey);
+        this.cachedCommits = new CachedCommits(repository);
+        this.cachedCommits.setup(this.commit);
+
+        this.viewDimension(mod, server, Level.OVERWORLD.location());
+    }
+
+    public void viewDimension(MchViewerFabric mod, MinecraftServer server, ResourceLocation dimensionKey) throws IOException {
+        World world = this.getWorld();
+        Dimension dimension = this.getDimension(world, dimensionKey);
+
+        Fantasy fantasy = Fantasy.get(server);
+        RuntimeWorldConfig config = new RuntimeWorldConfig()
+            .setGameRule(GameRules.RULE_DAYLIGHT, false)
+            .setGenerator(new VoidChunkGenerator(
+                server.registryAccess().registryOrThrow(Registries.BIOME)
+            ));
+
+        String key = RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789");
+        ResourceLocation id = new ResourceLocation(MchViewerFabric.NAMESPACE, key);
+        ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, id);
+
+        // Fantasy has the concept of temporary worlds, but they force a generated level
+        // key. We create the level key ourselves with our namespace and ensure it is
+        // handled by mch-fs before creating the world. Then we create a persistent
+        // world, but handle file cleanup ourselves.
+
+        // Delete dimension folder on exit.
+        Path dimensionPath = ((MinecraftServerAccess) server).getSession().getDimensionPath(levelKey);
+        Files.createDirectories(dimensionPath);
+        FileUtils.forceDeleteOnExit(dimensionPath.toFile());
+
+        // Set up mch-fs before loading the world so that the world's folder is wrapped
+        // by mch-fs when the world loads.
+        MchFileSystem fileSystem = MchFileSystemProvider.INSTANCE.newFileSystem(
+            dimensionPath.toAbsolutePath(), this.repository, this.trackedWorld,
+            levelKey.toString(), dimension
+        );
+        Path rootPath = fileSystem.getPath(".").toAbsolutePath().normalize();
+
+        // Overwrite the constructor to pass TEMPORARY as the world type.
+        RuntimeWorld.Constructor constructor = config.getWorldConstructor();
+        config.setWorldConstructor((server0, levelKey0, config0, _style)
+            -> constructor.createWorld(server0, levelKey0, config0, RuntimeWorld.Style.TEMPORARY));
+
+        // Create the world.
+        RuntimeWorldHandle worldHandle = fantasy.getOrOpenPersistentWorld(id, config);
+        worldHandle.asWorld().noSave = true;
+
+        DimensionView dimensionView = new DimensionView(this, worldHandle, dimension, dimensionKey, fileSystem, rootPath);
+
+        // TODO we need to call register before getOrOpenPersistentWorld
+        mod.registerDimensionView(levelKey, dimensionView);
+        this.dimensionViews.put(dimensionKey, dimensionView);
+    }
+
+    public void setCommit(CommitInfo commit) throws IOException {
+        this.commit = commit;
+
+        // Update all dimension views to use the new dimension objects.
+        World world = this.getWorld();
+        for (Map.Entry<ResourceLocation, DimensionView> entry : this.dimensionViews.entrySet()) {
+            ResourceLocation dimensionKey = entry.getKey();
+            DimensionView dimensionView = entry.getValue();
+            Dimension dimensionObject = this.getDimension(world, dimensionKey);
+            dimensionView.setDimension(dimensionObject);
+        }
     }
 
     /**
@@ -92,7 +115,7 @@ public class HistoryView {
      * @throws IOException If an I/O error occurs.
      */
     public World getWorld() throws IOException {
-        WorldContainer worldContainer = this.commit.getWorldContainer().resolve(this.repository);
+        WorldContainer worldContainer = this.commit.commit().getWorldContainer().resolve(this.repository);
         Reference20<World> worldRef = worldContainer.getWorld(this.trackedWorld.getId());
         if (worldRef == null) {
             throw new IllegalStateException(
@@ -104,82 +127,23 @@ public class HistoryView {
         return worldRef.resolve(this.repository);
     }
 
+    private Dimension getDimension(World world, ResourceLocation dimensionKey) throws IOException {
+        Reference20<Dimension> dimensionRef = world.getDimension(dimensionKey.toString());
+        if (dimensionRef == null) {
+            throw new IllegalArgumentException(
+                "The dimension " + dimensionKey + " was not present in the commit."
+            );
+        }
+        return dimensionRef.resolve(this.repository);
+    }
+
     /**
      * The commit currently being viewed.
      *
      * @return The commit.
      */
-    public Commit getCommit() {
+    public CommitInfo getCommit() {
         return this.commit;
-    }
-
-    public Sha1 getCommitHash() {
-        return this.commitHash;
-    }
-
-    /**
-     * Set the Fantasy {@link RuntimeWorldHandle} that this history view uses to render
-     * the history.
-     *
-     * @param world The world handle.
-     */
-    public void setWorldHandle(RuntimeWorldHandle world) {
-        if (this.worldHandle != null) {
-            throw new IllegalStateException("Cannot change world handle.");
-        }
-        this.worldHandle = world;
-    }
-
-    private void update() throws IOException {
-        if (this.fileSystem == null) {
-            return;
-        }
-        this.fileSystem.setWorld(this.trackedWorld, this.dimensionKey.toString(), this.dimensionView);
-
-        // Clear chunk caches
-        ServerLevel level = this.worldHandle.asWorld();
-        level.save(null, true, true); // flush, disable saving
-        ServerChunkCache chunkCache = level.getChunkSource();
-        chunkCache.save(true); // save and flush
-        ((ClearableChunkCache) chunkCache).mch$clearChunkCache();
-    }
-
-    public Path wrapPath(Path original) {
-        // We basically want to check of the "original" path starts with the root path.
-        // First, the "original" path needs to be made absolute since the root path is
-        // also absolute.
-        // The paths are also from different file system providers (default and mch),
-        // so we unwrap the root path (mch provider) to the default file system, so
-        // that they can be compared with the regular startsWith method.
-        //
-        Path normalized = original.toAbsolutePath().normalize();
-        Path unwrapped = MchPath.unwrap(this.rootPath);
-        if (normalized.startsWith(unwrapped)) {
-            // The original path should be wrapped
-            return new MchPath(this.fileSystem, original);
-        }
-        return original;
-    }
-
-    public void setupMchFs(MinecraftServer server, ResourceKey<Level> levelKey) throws IOException {
-        LevelStorageSource.LevelStorageAccess session = ((MinecraftServerAccess) server).getSession();
-
-        Path dimensionPath = session.getDimensionPath(levelKey).toAbsolutePath();
-        Files.createDirectories(dimensionPath);
-
-        this.fileSystem = MchFileSystemProvider.INSTANCE.newFileSystem(
-            dimensionPath, this.repository, this.trackedWorld,
-            this.dimensionKey.toString(), this.dimensionView
-        );
-        this.rootPath = this.fileSystem.getPath(".").toAbsolutePath().normalize();
-    }
-
-    public boolean isReady() {
-        return this.fileSystem != null;
-    }
-
-    public RuntimeWorldHandle getWorldHandle() {
-        return this.worldHandle;
     }
 
     public MchRepository getRepository() {
@@ -188,5 +152,9 @@ public class HistoryView {
 
     public CachedCommits getCachedCommits() {
         return this.cachedCommits;
+    }
+
+    public TrackedWorld getTrackedWorld() {
+        return this.trackedWorld;
     }
 }

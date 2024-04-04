@@ -6,28 +6,22 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.kyori.adventure.platform.fabric.FabricServerAudiences;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-import xyz.nucleoid.fantasy.Fantasy;
-import xyz.nucleoid.fantasy.RuntimeWorld;
-import xyz.nucleoid.fantasy.RuntimeWorldConfig;
-import xyz.nucleoid.fantasy.RuntimeWorldHandle;
-import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class MchViewerFabric implements ModInitializer {
+    public static final String NAMESPACE = "mch";
+
     private static MchViewerFabric instance;
     private volatile FabricServerAudiences adventure;
 
-    private final Map<ResourceKey<Level>, HistoryView> historyViews = new HashMap<>();
+    private final Map<ResourceKey<Level>, DimensionView> dimensionViews = new HashMap<>();
 
     @Override
     public void onInitialize() {
@@ -45,48 +39,22 @@ public class MchViewerFabric implements ModInitializer {
         return instance;
     }
 
-    public HistoryView view(MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld) throws IOException {
-        HistoryView view = new HistoryView(server, repository, trackedWorld);
+    void registerDimensionView(ResourceKey<Level> levelKey, DimensionView dimensionView) {
+        this.dimensionViews.put(levelKey, dimensionView);
+    }
 
-        Fantasy fantasy = Fantasy.get(server);
-        RuntimeWorldConfig config = new RuntimeWorldConfig()
-            .setGameRule(GameRules.RULE_DAYLIGHT, false)
-            .setGenerator(new VoidChunkGenerator(
-                server.registryAccess().registryOrThrow(Registries.BIOME)
-            ));
-
-        // TODO rewrite this to use an mch-generated key instead so we don't have
-        //  to do this trickery. Then just delete it manually.
-        RuntimeWorld.Constructor constructor = config.getWorldConstructor();
-        config.setWorldConstructor((minecraftServer, levelKey, runtimeWorldConfig, style) -> {
-            // Now that we know the random key that we were given by Fantasy, we can
-            // get the dimension path. This path needs to be wrapped by mch-fs.
-            try {
-                view.setupMchFs(minecraftServer, levelKey);
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to set up mch-fs", e);
-            }
-            this.historyViews.put(levelKey, view);
-            // Call the normal constructor and create the world.
-            return constructor.createWorld(minecraftServer, levelKey, runtimeWorldConfig, style);
-        });
-
-        // Create the world.
-        RuntimeWorldHandle worldHandle = fantasy.openTemporaryWorld(config);
-        worldHandle.asWorld().noSave = true;
-        view.setWorldHandle(worldHandle);
-
-        return view;
+    public HistoryView view(MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld, CommitInfo commit) throws IOException {
+        return new HistoryView(this, server, repository, trackedWorld, commit);
     }
 
     /**
-     * Get a {@link HistoryView} associated with a level key.
+     * Get a {@link DimensionView} associated with a level key.
      *
      * @param levelKey The level key.
      * @return The history view.
      */
     @Nullable
-    public HistoryView getHistoryView(ResourceKey<Level> levelKey) {
-        return this.historyViews.get(levelKey);
+    public DimensionView getDimensionView(ResourceKey<Level> levelKey) {
+        return this.dimensionViews.get(levelKey);
     }
 }
