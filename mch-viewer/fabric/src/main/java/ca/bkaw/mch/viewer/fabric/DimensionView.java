@@ -2,35 +2,40 @@ package ca.bkaw.mch.viewer.fabric;
 
 import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchPath;
-import ca.bkaw.mch.object.dimension.Dimension;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 public final class DimensionView {
     private final HistoryView parent;
-    private final RuntimeWorldHandle worldHandle;
     private final MchFileSystem fileSystem;
     private final Path rootPath;
-    private final ResourceLocation dimensionKey;
-    private Dimension dimensionObject;
+    private RuntimeWorldHandle worldHandle;
 
-    public DimensionView(HistoryView parent, RuntimeWorldHandle worldHandle, Dimension dimensionObject,
-                         ResourceLocation dimensionKey, MchFileSystem fileSystem, Path rootPath) {
+    public DimensionView(HistoryView parent, MchFileSystem fileSystem, Path rootPath) {
         this.parent = parent;
-        this.worldHandle = worldHandle;
-        this.dimensionObject = dimensionObject;
-        this.dimensionKey = dimensionKey;
         this.fileSystem = fileSystem;
         this.rootPath = rootPath;
     }
 
     public HistoryView getParent() {
         return this.parent;
+    }
+
+    public void setWorldHandle(RuntimeWorldHandle worldHandle) {
+        if (this.worldHandle != null) {
+            throw new IllegalStateException("Cannot change world handle.");
+        }
+        this.worldHandle = worldHandle;
+    }
+
+    public RuntimeWorldHandle getWorldHandle() {
+        return this.worldHandle;
+    }
+
+    public ServerLevel getLevel() {
+        return this.worldHandle.asWorld();
     }
 
     public Path wrapPath(Path original) {
@@ -49,24 +54,4 @@ public final class DimensionView {
         }
         return original;
     }
-
-    public void setDimension(Dimension dimensionObject) throws IOException {
-        this.dimensionObject = dimensionObject;
-        this.update();
-    }
-
-    private void update() throws IOException {
-        if (this.fileSystem == null) {
-            return;
-        }
-        this.fileSystem.setWorld(this.parent.getTrackedWorld(), this.dimensionKey.toString(), this.dimensionObject);
-
-        // Clear chunk caches
-        ServerLevel level = this.worldHandle.asWorld();
-        level.save(null, true, true); // flush, disable saving
-        ServerChunkCache chunkCache = level.getChunkSource();
-        chunkCache.save(true); // save and flush
-        ((ClearableChunkCache) chunkCache).mch$clearChunkCache();
-    }
-
 }

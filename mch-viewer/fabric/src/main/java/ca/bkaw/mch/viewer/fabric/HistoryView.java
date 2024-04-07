@@ -2,8 +2,14 @@ package ca.bkaw.mch.viewer.fabric;
 
 import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchFileSystemProvider;
+import ca.bkaw.mch.nbt.NbtCompound;
+import ca.bkaw.mch.nbt.NbtFloat;
+import ca.bkaw.mch.nbt.NbtInt;
+import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.Reference20;
+import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.object.worldcontainer.WorldContainer;
 import ca.bkaw.mch.repository.MchRepository;
@@ -12,10 +18,15 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector4d;
 import xyz.nucleoid.fantasy.Fantasy;
 import xyz.nucleoid.fantasy.RuntimeWorld;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
@@ -23,13 +34,19 @@ import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
 import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 public class HistoryView {
+    private final MchViewerFabric mod;
+    private final MinecraftServer server;
     private final MchRepository repository;
     private final TrackedWorld trackedWorld;
     private final CachedCommits cachedCommits;
@@ -37,24 +54,24 @@ public class HistoryView {
     private CommitInfo commit;
 
     public HistoryView(MchViewerFabric mod, MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld, CommitInfo commit) throws IOException {
+        this.mod = mod;
+        this.server = server;
         this.repository = repository;
         this.trackedWorld = trackedWorld;
         this.commit = commit;
         this.cachedCommits = new CachedCommits(repository);
         this.cachedCommits.setup(this.commit);
-
-        this.viewDimension(mod, server, Level.OVERWORLD.location());
     }
 
-    public void viewDimension(MchViewerFabric mod, MinecraftServer server, ResourceLocation dimensionKey) throws IOException {
+    public DimensionView viewDimension(ResourceLocation dimensionKey) throws IOException {
         World world = this.getWorld();
         Dimension dimension = this.getDimension(world, dimensionKey);
 
-        Fantasy fantasy = Fantasy.get(server);
+        Fantasy fantasy = Fantasy.get(this.server);
         RuntimeWorldConfig config = new RuntimeWorldConfig()
             .setGameRule(GameRules.RULE_DAYLIGHT, false)
             .setGenerator(new VoidChunkGenerator(
-                server.registryAccess().registryOrThrow(Registries.BIOME)
+                this.server.registryAccess().registryOrThrow(Registries.BIOME)
             ));
 
         String key = RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789");
@@ -67,7 +84,7 @@ public class HistoryView {
         // world, but handle file cleanup ourselves.
 
         // Delete dimension folder on exit.
-        Path dimensionPath = ((MinecraftServerAccess) server).getSession().getDimensionPath(levelKey);
+        Path dimensionPath = ((MinecraftServerAccess) this.server).getSession().getDimensionPath(levelKey);
         Files.createDirectories(dimensionPath);
         FileUtils.forceDeleteOnExit(dimensionPath.toFile());
 
@@ -75,9 +92,12 @@ public class HistoryView {
         // by mch-fs when the world loads.
         MchFileSystem fileSystem = MchFileSystemProvider.INSTANCE.newFileSystem(
             dimensionPath.toAbsolutePath(), this.repository, this.trackedWorld,
-            levelKey.toString(), dimension
+            dimensionKey.toString(), dimension
         );
         Path rootPath = fileSystem.getPath(".").toAbsolutePath().normalize();
+
+        DimensionView dimensionView = new DimensionView(this, fileSystem, rootPath);
+        this.mod.registerDimensionView(levelKey, dimensionView);
 
         // Overwrite the constructor to pass TEMPORARY as the world type.
         RuntimeWorld.Constructor constructor = config.getWorldConstructor();
@@ -86,25 +106,39 @@ public class HistoryView {
 
         // Create the world.
         RuntimeWorldHandle worldHandle = fantasy.getOrOpenPersistentWorld(id, config);
-        worldHandle.asWorld().noSave = true;
 
-        DimensionView dimensionView = new DimensionView(this, worldHandle, dimension, dimensionKey, fileSystem, rootPath);
-
-        // TODO we need to call register before getOrOpenPersistentWorld
-        mod.registerDimensionView(levelKey, dimensionView);
+        dimensionView.setWorldHandle(worldHandle);
         this.dimensionViews.put(dimensionKey, dimensionView);
+
+        dimensionView.getLevel().noSave = true;
+
+        return dimensionView;
     }
 
     public void setCommit(CommitInfo commit) throws IOException {
         this.commit = commit;
 
         // Update all dimension views to use the new dimension objects.
-        World world = this.getWorld();
-        for (Map.Entry<ResourceLocation, DimensionView> entry : this.dimensionViews.entrySet()) {
+        for (Map.Entry<ResourceLocation, DimensionView> entry : new HashMap<>(this.dimensionViews).entrySet()) {
             ResourceLocation dimensionKey = entry.getKey();
-            DimensionView dimensionView = entry.getValue();
-            Dimension dimensionObject = this.getDimension(world, dimensionKey);
-            dimensionView.setDimension(dimensionObject);
+            DimensionView oldView = entry.getValue();
+
+            // Create new dimension view
+            DimensionView newView = this.viewDimension(dimensionKey);
+
+            // Teleport players from old view to new view
+            ServerLevel oldLevel = oldView.getLevel();
+            for (ServerPlayer player : new ArrayList<>(oldLevel.players())) {
+                ServerLevel newLevel = newView.getLevel();
+                player.teleportTo(
+                    newLevel, player.getX(), player.getY(), player.getZ(),
+                    player.getYRot(), player.getXRot()
+                );
+            }
+
+            // Delete old dimension view
+            this.mod.unregisterDimensionView(oldLevel.dimension(), oldView);
+            oldView.getWorldHandle().delete();
         }
     }
 
@@ -138,6 +172,59 @@ public class HistoryView {
     }
 
     /**
+     * Get the spawn position and angle of the world being viewed.
+     * <p>
+     * The vector contains the x, y, z coordinates, and the w component is the angle (yaw).
+     *
+     * @return The (x, y, z, yaw) vector.
+     */
+    @NotNull
+    public Vector4d getSpawn() {
+        try {
+            Vector4d pos = this.readLevelDatSpawn();
+            if (pos != null) {
+                return pos;
+            }
+        } catch (IOException ignored) {}
+
+        return new Vector4d(0, 100, 0, 0);
+    }
+
+    @Nullable
+    private Vector4d readLevelDatSpawn() throws IOException {
+        World world = this.getWorld();
+        Reference20<Dimension> dimensionRef = world.getDimension(Dimension.OVERWORLD);
+        if (dimensionRef == null) {
+            return null;
+        }
+        Dimension dimension = dimensionRef.resolve(this.repository);
+        Tree tree = dimension.getMiscellaneousFiles().resolve(this.repository);
+        Tree.BlobReference blobRef = tree.getFiles().get("level.dat");
+        if (blobRef == null) {
+            return null;
+        }
+        Blob levelDatBlob = blobRef.reference().resolve(this.repository);
+        DataInputStream stream = new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(levelDatBlob.getBytes())));
+        NbtCompound nbt = NbtTag.readCompound(stream);
+        NbtCompound nbtData = (NbtCompound) nbt.get("Data");
+        if (nbtData == null) {
+            return null;
+        }
+        NbtTag nbtX = nbtData.get("SpawnX");
+        NbtTag nbtY = nbtData.get("SpawnY");
+        NbtTag nbtZ = nbtData.get("SpawnZ");
+        NbtTag nbtAngle = nbtData.get("SpawnAngle");
+        if (nbtX == null || nbtY == null || nbtZ == null) {
+            return null;
+        }
+        int x = ((NbtInt) nbtX).getValue();
+        int y = ((NbtInt) nbtY).getValue();
+        int z = ((NbtInt) nbtZ).getValue();
+        float angle = nbtAngle == null ? 0 : ((NbtFloat) nbtAngle).getValue();
+        return new Vector4d(x, y, z, angle);
+    }
+
+    /**
      * The commit currently being viewed.
      *
      * @return The commit.
@@ -152,9 +239,5 @@ public class HistoryView {
 
     public CachedCommits getCachedCommits() {
         return this.cachedCommits;
-    }
-
-    public TrackedWorld getTrackedWorld() {
-        return this.trackedWorld;
     }
 }

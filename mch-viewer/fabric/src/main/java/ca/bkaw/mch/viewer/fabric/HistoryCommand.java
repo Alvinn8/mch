@@ -20,7 +20,11 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector4d;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -57,6 +61,40 @@ public class HistoryCommand {
                                 return 0;
                             }
                         })
+                        .then(
+                            Commands.literal("before")
+                                .then(
+                                    Commands.argument("commit hash", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            try {
+                                                String str = StringArgumentType.getString(ctx, "commit hash");
+                                                Sha1 hash = Sha1.fromString(str);
+                                                return logBefore(ctx, hash);
+                                            } catch (Throwable e) {
+                                                ctx.getSource().sendFailure(Component.text(e.toString()));
+                                                e.printStackTrace();
+                                                return 0;
+                                            }
+                                        })
+                                )
+                        )
+                        .then(
+                            Commands.literal("after")
+                                .then(
+                                    Commands.argument("commit hash", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            try {
+                                                String str = StringArgumentType.getString(ctx, "commit hash");
+                                                Sha1 hash = Sha1.fromString(str);
+                                                return logAfter(ctx, hash);
+                                            } catch (Throwable e) {
+                                                ctx.getSource().sendFailure(Component.text(e.toString()));
+                                                e.printStackTrace();
+                                                return 0;
+                                            }
+                                        })
+                                )
+                        )
                 )
                 .then(
                     Commands.literal("commit")
@@ -92,9 +130,9 @@ public class HistoryCommand {
         MchViewerFabric mchViewer = MchViewerFabric.getInstance();
 
         MinecraftServer server = ctx.getSource().getServer();
-        MchRepository repository = new MchRepository(Path.of("/Users/Alvin/Documents/mch/metacraft/bygg/mch"));
+        MchRepository repository = new MchRepository(Path.of("/root/mch/metacraft-survival/mch"));
         repository.readConfiguration();
-        TrackedWorld trackedWorld = repository.getConfiguration().getTrackedWorld(Sha1.fromString("dde930208d9c6dd54e13ef13ad5be79a476b27bf"));
+        TrackedWorld trackedWorld = repository.getConfiguration().getTrackedWorld(Sha1.fromString("d6cd92545d49add9a5157a6bc7647a59ea4b1c38"));
 
         Reference20<Commit> headCommitRef = repository.getHeadCommit();
         if (headCommitRef == null) {
@@ -105,8 +143,19 @@ public class HistoryCommand {
         CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
 
         HistoryView view = mchViewer.view(server, repository, trackedWorld, commitInfo);
+        DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.location());
 
-        // TODO send player to view
+        ServerPlayer player = ctx.getSource().getPlayer();
+        if (player != null) {
+            Vector4d spawn = view.getSpawn();
+            double x = spawn.x();
+            double y = spawn.y();
+            double z = spawn.z();
+            float angle = (float) spawn.w();
+            ServerLevel level = dimensionView.getLevel();
+
+            player.teleportTo(level, x, y, z, angle, 0);
+        }
 
         return 1;
     }
@@ -114,33 +163,10 @@ public class HistoryCommand {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     public static final DateFormat DETAILED_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zzz");
 
-    private static int log(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException, IOException {
+    private static void displayCommits(CommandContext<CommandSourceStack> ctx, @Nullable CommitInfo[] commits) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
-
         CommitInfo current = historyView.getCommit();
-        CommitInfo[] commits = new CommitInfo[11];
-        commits[5] = current;
-
-        // Fill [0-4]
-        CommitInfo next = current;
-        for (int i = 4; i >= 0; i--) {
-            next = cachedCommits.nextCommit(next);
-            if (next == null) {
-                break;
-            }
-            commits[i] = next;
-        }
-
-        // Fill [6-10]
-        CommitInfo prev = current;
-        for (int i = 6; i <= 10; i++) {
-            prev = cachedCommits.previousCommit(prev);
-            if (prev == null) {
-                break;
-            }
-            commits[i] = prev;
-        }
 
         TextComponent.Builder builder = Component.text();
 
@@ -193,14 +219,26 @@ public class HistoryCommand {
         }
 
         builder.append(Component.text("====", NamedTextColor.YELLOW));
+        CommitInfo prev = commits[0];
         if (prev != null && cachedCommits.hasPrevious(prev)) {
-            builder.append(Component.text("[ < ]", NamedTextColor.GOLD));
+            builder.append(
+                Component.text()
+                    .content("[ < ]")
+                    .color(NamedTextColor.GOLD)
+                    .hoverEvent(HoverEvent.showText(Component.text("Previous page")))
+                    .clickEvent(ClickEvent.runCommand("/history log before " + prev.hash().asHex()))
+            );
         } else {
             builder.append(Component.text("[ < ]", NamedTextColor.GRAY));
         }
         builder.append(Component.text("==", NamedTextColor.YELLOW));
+        CommitInfo next = commits[commits.length - 1];
         if (next != null && cachedCommits.hasNext(next)) {
-            builder.append(Component.text("[ > ]", NamedTextColor.GOLD));
+            builder.append(Component.text()
+                .content("[ > ]")
+                .color(NamedTextColor.GOLD)
+                .hoverEvent(HoverEvent.showText(Component.text("Previous page")))
+                .clickEvent(ClickEvent.runCommand("/history log after " + next.hash().asHex())));
         } else {
             builder.append(Component.text("[ > ]", NamedTextColor.GRAY));
         }
@@ -208,6 +246,80 @@ public class HistoryCommand {
         builder.append(Component.newline());
 
         ctx.getSource().sendMessage(builder.build());
+
+    }
+
+    private static int log(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException, IOException {
+        HistoryView historyView = getHistoryView(ctx);
+        CachedCommits cachedCommits = historyView.getCachedCommits();
+
+        CommitInfo current = historyView.getCommit();
+        CommitInfo[] commits = new CommitInfo[11];
+        commits[5] = current;
+
+        // Fill [0-4]
+        CommitInfo next = current;
+        for (int i = 4; i >= 0; i--) {
+            next = cachedCommits.nextCommit(next);
+            if (next == null) {
+                break;
+            }
+            commits[i] = next;
+        }
+
+        // Fill [6-10]
+        CommitInfo prev = current;
+        for (int i = 6; i <= 10; i++) {
+            prev = cachedCommits.previousCommit(prev);
+            if (prev == null) {
+                break;
+            }
+            commits[i] = prev;
+        }
+
+        displayCommits(ctx, commits);
+
+        return 1;
+    }
+
+    private static int logBefore(CommandContext<CommandSourceStack> ctx, Sha1 commitHash) throws CommandSyntaxException, IOException {
+        HistoryView historyView = getHistoryView(ctx);
+        CachedCommits cachedCommits = historyView.getCachedCommits();
+
+        Commit commit = ObjectStorageTypes.COMMIT.read(commitHash, historyView.getRepository());
+        CommitInfo commitInfo = new CommitInfo(commit, commitHash);
+
+        CommitInfo[] commits = new CommitInfo[11];
+        for (int i = commits.length - 1; i >= 0; i--) {
+            commitInfo = cachedCommits.previousCommit(commitInfo);
+            if (commitInfo == null) {
+                break;
+            }
+            commits[i] = commitInfo;
+        }
+
+        displayCommits(ctx, commits);
+
+        return 1;
+    }
+
+    private static int logAfter(CommandContext<CommandSourceStack> ctx, Sha1 commitHash) throws CommandSyntaxException, IOException {
+        HistoryView historyView = getHistoryView(ctx);
+        CachedCommits cachedCommits = historyView.getCachedCommits();
+
+        Commit commit = ObjectStorageTypes.COMMIT.read(commitHash, historyView.getRepository());
+        CommitInfo commitInfo = new CommitInfo(commit, commitHash);
+
+        CommitInfo[] commits = new CommitInfo[11];
+        for (int i = 0; i < commits.length; i++) {
+            commitInfo = cachedCommits.nextCommit(commitInfo);
+            if (commitInfo == null) {
+                break;
+            }
+            commits[i] = commitInfo;
+        }
+
+        displayCommits(ctx, commits);
 
         return 1;
     }

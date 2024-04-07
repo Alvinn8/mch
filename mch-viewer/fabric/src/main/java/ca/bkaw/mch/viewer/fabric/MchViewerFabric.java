@@ -43,6 +43,10 @@ public class MchViewerFabric implements ModInitializer {
         this.dimensionViews.put(levelKey, dimensionView);
     }
 
+    void unregisterDimensionView(ResourceKey<Level> levelKey, DimensionView dimensionView) {
+        this.dimensionViews.remove(levelKey, dimensionView);
+    }
+
     public HistoryView view(MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld, CommitInfo commit) throws IOException {
         return new HistoryView(this, server, repository, trackedWorld, commit);
     }
