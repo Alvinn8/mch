@@ -96,6 +96,15 @@ public class MchRepository {
     }
 
     /**
+     * Check if this repository has been created.
+     *
+     * @return Whether the repository exists.
+     */
+    public boolean exists() {
+        return Files.exists(this.getConfigurationPath());
+    }
+
+    /**
      * Get the path to the root of the repository. Also known as the "mch" directory.
      *
      * @return The path.

@@ -29,6 +29,9 @@ dependencies {
     implementation(project(":mch"))!!
     implementation(project(":mch-fs"))!!
     compileOnly("org.jetbrains:annotations:24.0.1")
+
+    include(implementation("com.electronwill.night-config:core:${property("night_config_version")}")!!)
+    include(implementation("com.electronwill.night-config:toml:${property("night_config_version")}")!!)
 }
 
 tasks {

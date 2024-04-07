@@ -10,7 +10,10 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -22,6 +25,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4d;
@@ -31,10 +35,15 @@ import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 public class HistoryCommand {
     public static final SimpleCommandExceptionType NOT_VIEWING_HISTORY = new SimpleCommandExceptionType(net.minecraft.network.chat.Component.literal(
-        "You are not viewing the history right now."
+        "You are not viewing history right now."
+    ));
+    public static final DynamicCommandExceptionType NOT_A_REPO = new DynamicCommandExceptionType(repoKey -> net.minecraft.network.chat.Component.literal(
+        "'" + repoKey + "' was not found in the mch-viewer configuration."
     ));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -50,6 +59,23 @@ public class HistoryCommand {
                         return 0;
                     }
                 })
+                .then(
+                    Commands.literal("view")
+                        .then(
+                            Commands.argument("repo", StringArgumentType.greedyString())
+                                .suggests(HistoryCommand::suggestRepos)
+                                .executes(ctx -> {
+                                    String repoKey = StringArgumentType.getString(ctx, "repo");
+                                    try {
+                                        return view(ctx, repoKey);
+                                    } catch (IOException e) {
+                                        ctx.getSource().sendFailure(Component.text("Failed to create history view. See the server console for an error message."));
+                                        e.printStackTrace();
+                                        return 0;
+                                    }
+                                })
+                        )
+                )
                 .then(
                     Commands.literal("log")
                         .executes(ctx -> {
@@ -160,6 +186,53 @@ public class HistoryCommand {
         return 1;
     }
 
+    private static int view(CommandContext<CommandSourceStack> ctx, String repoKey) throws CommandSyntaxException, IOException {
+        MchViewerFabric mchViewer = MchViewerFabric.getInstance();
+        RepoViewerConfig repo = mchViewer.getRepo(repoKey);
+        if (repo == null) {
+            throw NOT_A_REPO.create(repoKey);
+        }
+        MchRepository repository = repo.getRepository();
+        TrackedWorld trackedWorld = repo.getTrackedWorld();
+        MinecraftServer server = ctx.getSource().getServer();
+
+        Reference20<Commit> headCommitRef = repository.getHeadCommit();
+        if (headCommitRef == null) {
+            throw new IllegalArgumentException("Repository is empty");
+        }
+
+        Commit commit = headCommitRef.resolve(repository);
+        CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
+
+        HistoryView view = mchViewer.view(server, repository, trackedWorld, commitInfo);
+        DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.location());
+
+        ServerPlayer player = ctx.getSource().getPlayer();
+        if (player != null) {
+            Vector4d spawnOverride = repo.getSpawnOverride();
+            Vector4d spawn = spawnOverride != null ? spawnOverride : view.getSpawn();
+            double x = spawn.x();
+            double y = spawn.y();
+            double z = spawn.z();
+            float angle = (float) spawn.w();
+            ServerLevel level = dimensionView.getLevel();
+
+            player.teleportTo(level, x, y, z, angle, 0);
+        }
+
+        return 1;
+    }
+
+    private static CompletableFuture<Suggestions> suggestRepos(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        MchViewerFabric mchViewer = MchViewerFabric.getInstance();
+        for (String repoKey : mchViewer.getRepoKeys()) {
+            if (repoKey.toLowerCase(Locale.ROOT).startsWith(builder.getRemainingLowerCase())) {
+                builder.suggest(repoKey);
+            }
+        }
+        return builder.buildFuture();
+    }
+
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     public static final DateFormat DETAILED_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zzz");
 
@@ -183,7 +256,9 @@ public class HistoryCommand {
             Sha1 hash = commitInfo.hash();
             boolean isCurrentCommit = commitInfo.equals(current);
             TextComponent.Builder row = Component.text();
-            row.clickEvent(ClickEvent.runCommand("/history commit " + hash.asHex()));
+            if (!isCurrentCommit) {
+                row.clickEvent(ClickEvent.runCommand("/history commit " + hash.asHex()));
+            }
             if (isCurrentCommit) {
                 row.append(
                     Component.text()
@@ -219,7 +294,7 @@ public class HistoryCommand {
         }
 
         builder.append(Component.text("====", NamedTextColor.YELLOW));
-        CommitInfo prev = commits[0];
+        CommitInfo prev = commits[commits.length - 1];
         if (prev != null && cachedCommits.hasPrevious(prev)) {
             builder.append(
                 Component.text()
@@ -232,12 +307,12 @@ public class HistoryCommand {
             builder.append(Component.text("[ < ]", NamedTextColor.GRAY));
         }
         builder.append(Component.text("==", NamedTextColor.YELLOW));
-        CommitInfo next = commits[commits.length - 1];
+        CommitInfo next = commits[0];
         if (next != null && cachedCommits.hasNext(next)) {
             builder.append(Component.text()
                 .content("[ > ]")
                 .color(NamedTextColor.GOLD)
-                .hoverEvent(HoverEvent.showText(Component.text("Previous page")))
+                .hoverEvent(HoverEvent.showText(Component.text("Next page")))
                 .clickEvent(ClickEvent.runCommand("/history log after " + next.hash().asHex())));
         } else {
             builder.append(Component.text("[ > ]", NamedTextColor.GRAY));
@@ -290,7 +365,7 @@ public class HistoryCommand {
         CommitInfo commitInfo = new CommitInfo(commit, commitHash);
 
         CommitInfo[] commits = new CommitInfo[11];
-        for (int i = commits.length - 1; i >= 0; i--) {
+        for (int i = 0; i < commits.length; i++) {
             commitInfo = cachedCommits.previousCommit(commitInfo);
             if (commitInfo == null) {
                 break;
@@ -311,7 +386,7 @@ public class HistoryCommand {
         CommitInfo commitInfo = new CommitInfo(commit, commitHash);
 
         CommitInfo[] commits = new CommitInfo[11];
-        for (int i = 0; i < commits.length; i++) {
+        for (int i = commits.length - 1; i >= 0; i--) {
             commitInfo = cachedCommits.nextCommit(commitInfo);
             if (commitInfo == null) {
                 break;
@@ -333,7 +408,13 @@ public class HistoryCommand {
 
         historyView.setCommit(new CommitInfo(commit, ref.getSha1()));
 
-        log(ctx);
+        // We need to recreate the CommandSourceStack to be able to execute /mch log again.
+        // Calling log(ctx) will not work since this CommandContext still has the old level
+        // that no longer is tied to the HistoryView instance.
+        Entity entity = ctx.getSource().getEntity();
+        if (entity != null) {
+            ctx.getSource().getServer().getCommands().performPrefixedCommand(entity.createCommandSourceStack(), "history log");
+        }
 
         return 1;
     }

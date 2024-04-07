@@ -147,7 +147,7 @@ public class CachedCommits {
         if (head == null) {
             throw new IllegalArgumentException("Commit not in repository (empty repository).");
         }
-        return head.getSha1().equals(commit.hash());
+        return !head.getSha1().equals(commit.hash());
     }
 
     /**

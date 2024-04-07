@@ -134,6 +134,10 @@ public class HistoryView {
                     newLevel, player.getX(), player.getY(), player.getZ(),
                     player.getYRot(), player.getXRot()
                 );
+                if (!player.getAbilities().flying && player.getAbilities().mayfly) {
+                    player.getAbilities().flying = true;
+                    player.onUpdateAbilities();
+                }
             }
 
             // Delete old dimension view
