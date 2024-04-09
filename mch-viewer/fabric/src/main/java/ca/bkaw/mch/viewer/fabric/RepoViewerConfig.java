@@ -19,7 +19,7 @@ public class RepoViewerConfig {
     private final MchRepository repository;
     private final TrackedWorld trackedWorld;
     @Nullable
-    private Vector4d spawnOverride; // TODO
+    private Vector4d spawnOverride;
 
     public RepoViewerConfig(MchRepository repository, TrackedWorld trackedWorld) {
         this.repository = repository;
@@ -61,7 +61,21 @@ public class RepoViewerConfig {
             throw new RuntimeException("Unable to find tracked world.");
         }
 
-        return new RepoViewerConfig(repository, trackedWorld);
+        RepoViewerConfig repo = new RepoViewerConfig(repository, trackedWorld);
+
+        if (config.contains("spawn")) {
+            repo.readSpawnOverride(config.get("spawn"));
+        }
+
+        return repo;
+    }
+
+    private void readSpawnOverride(Config config) {
+        double x = config.get("x");
+        double y = config.get("x");
+        double z = config.get("x");
+        float yaw = config.getOrElse("yaw", 0);
+        this.spawnOverride = new Vector4d(x, y, z, yaw);
     }
 
     public MchRepository getRepository() {

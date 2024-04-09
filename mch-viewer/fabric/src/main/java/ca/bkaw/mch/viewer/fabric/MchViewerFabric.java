@@ -26,13 +26,15 @@ import java.util.Set;
 
 public class MchViewerFabric implements ModInitializer {
     public static final Logger LOGGER = LogUtils.getLogger();
-    public static final String NAMESPACE = "mch";
+    public static final String NAMESPACE = "mch-viewer";
 
     private static MchViewerFabric instance;
     private volatile FabricServerAudiences adventure;
 
     private final Map<String, RepoViewerConfig> repoViewerConfigs = new HashMap<>();
     private final Map<ResourceKey<Level>, DimensionView> dimensionViews = new HashMap<>();
+    @Nullable
+    private String defaultRepo;
 
     public static MchViewerFabric getInstance() {
         return instance;
@@ -43,7 +45,7 @@ public class MchViewerFabric implements ModInitializer {
         instance = this;
 
         CommandRegistrationCallback.EVENT.register(
-            (dispatcher, registryAccess, environment) -> HistoryCommand.register(dispatcher)
+            (dispatcher, registryAccess, environment) -> new HistoryCommand(this).register(dispatcher)
         );
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> this.adventure = FabricServerAudiences.of(server));
@@ -68,6 +70,8 @@ public class MchViewerFabric implements ModInitializer {
         Path configPath = configDir.resolve("config.toml");
         try (FileConfig config = FileConfig.of(configPath)) {
             config.load();
+
+            this.defaultRepo = config.getOrElse("default_repo", (String) null);
 
             Config reposConfig = config.get("repos");
             if (reposConfig == null) {
@@ -128,5 +132,26 @@ public class MchViewerFabric implements ModInitializer {
      */
     public Set<String> getRepoKeys() {
         return Collections.unmodifiableSet(this.repoViewerConfigs.keySet());
+    }
+
+    /**
+     * Get the key to the default repository to view when running "/history".
+     * <p>
+     * If the user has configured an explicit default, the key will be returned
+     * without validating that it exists. If no default has been set, but only one
+     * repo configured that repo key will be returned. In other cases, {@code null}
+     * is returned.
+     *
+     * @return The default repo key, or null.
+     */
+    @Nullable
+    public String getDefaultRepoKey() {
+        if (this.defaultRepo != null) {
+            return this.defaultRepo;
+        }
+        if (this.repoViewerConfigs.size() == 1) {
+            return this.repoViewerConfigs.keySet().iterator().next();
+        }
+        return null;
     }
 }

@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4d;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -45,14 +44,23 @@ public class HistoryCommand {
     public static final DynamicCommandExceptionType NOT_A_REPO = new DynamicCommandExceptionType(repoKey -> net.minecraft.network.chat.Component.literal(
         "'" + repoKey + "' was not found in the mch-viewer configuration."
     ));
+    public static final SimpleCommandExceptionType NO_DEFAULT_REPO = new SimpleCommandExceptionType(net.minecraft.network.chat.Component.literal(
+        "No default repo has configured, please specify which repo to view with /history view <repo>"
+    ));
+    
+    private final MchViewerFabric mchViewer;
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+    public HistoryCommand(MchViewerFabric mchViewer) {
+        this.mchViewer = mchViewer;
+    }
+
+    public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("history")
                 .requires(ctx -> ctx.hasPermission(2))
                 .executes(ctx -> {
                     try {
-                        return test(ctx);
+                        return viewDefault(ctx);
                     } catch (Throwable e) {
                         ctx.getSource().sendFailure(Component.text(e.toString()));
                         e.printStackTrace();
@@ -63,7 +71,7 @@ public class HistoryCommand {
                     Commands.literal("view")
                         .then(
                             Commands.argument("repo", StringArgumentType.greedyString())
-                                .suggests(HistoryCommand::suggestRepos)
+                                .suggests(this::suggestRepos)
                                 .executes(ctx -> {
                                     String repoKey = StringArgumentType.getString(ctx, "repo");
                                     try {
@@ -142,53 +150,25 @@ public class HistoryCommand {
         );
     }
 
-    public static HistoryView getHistoryView(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        MchViewerFabric mchViewer = MchViewerFabric.getInstance();
+    public HistoryView getHistoryView(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ResourceKey<Level> levelKey = ctx.getSource().getLevel().dimension();
-        DimensionView historyView = mchViewer.getDimensionView(levelKey);
+        DimensionView historyView = this.mchViewer.getDimensionView(levelKey);
         if (historyView == null) {
             throw NOT_VIEWING_HISTORY.create();
         }
         return historyView.getParent();
     }
 
-    public static int test(CommandContext<CommandSourceStack> ctx) throws IOException {
-        MchViewerFabric mchViewer = MchViewerFabric.getInstance();
-
-        MinecraftServer server = ctx.getSource().getServer();
-        MchRepository repository = new MchRepository(Path.of("/root/mch/metacraft-survival/mch"));
-        repository.readConfiguration();
-        TrackedWorld trackedWorld = repository.getConfiguration().getTrackedWorld(Sha1.fromString("d6cd92545d49add9a5157a6bc7647a59ea4b1c38"));
-
-        Reference20<Commit> headCommitRef = repository.getHeadCommit();
-        if (headCommitRef == null) {
-            throw new IllegalArgumentException("Repository is empty");
+    public int viewDefault(CommandContext<CommandSourceStack> ctx) throws IOException, CommandSyntaxException {
+        String repoKey = this.mchViewer.getDefaultRepoKey();
+        if (repoKey == null) {
+            throw NO_DEFAULT_REPO.create();
         }
-
-        Commit commit = headCommitRef.resolve(repository);
-        CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
-
-        HistoryView view = mchViewer.view(server, repository, trackedWorld, commitInfo);
-        DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.location());
-
-        ServerPlayer player = ctx.getSource().getPlayer();
-        if (player != null) {
-            Vector4d spawn = view.getSpawn();
-            double x = spawn.x();
-            double y = spawn.y();
-            double z = spawn.z();
-            float angle = (float) spawn.w();
-            ServerLevel level = dimensionView.getLevel();
-
-            player.teleportTo(level, x, y, z, angle, 0);
-        }
-
-        return 1;
+        return view(ctx, repoKey);
     }
 
-    private static int view(CommandContext<CommandSourceStack> ctx, String repoKey) throws CommandSyntaxException, IOException {
-        MchViewerFabric mchViewer = MchViewerFabric.getInstance();
-        RepoViewerConfig repo = mchViewer.getRepo(repoKey);
+    private int view(CommandContext<CommandSourceStack> ctx, String repoKey) throws CommandSyntaxException, IOException {
+        RepoViewerConfig repo = this.mchViewer.getRepo(repoKey);
         if (repo == null) {
             throw NOT_A_REPO.create(repoKey);
         }
@@ -204,7 +184,7 @@ public class HistoryCommand {
         Commit commit = headCommitRef.resolve(repository);
         CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
 
-        HistoryView view = mchViewer.view(server, repository, trackedWorld, commitInfo);
+        HistoryView view = this.mchViewer.view(server, repository, trackedWorld, commitInfo);
         DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.location());
 
         ServerPlayer player = ctx.getSource().getPlayer();
@@ -223,9 +203,8 @@ public class HistoryCommand {
         return 1;
     }
 
-    private static CompletableFuture<Suggestions> suggestRepos(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
-        MchViewerFabric mchViewer = MchViewerFabric.getInstance();
-        for (String repoKey : mchViewer.getRepoKeys()) {
+    private CompletableFuture<Suggestions> suggestRepos(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        for (String repoKey : this.mchViewer.getRepoKeys()) {
             if (repoKey.toLowerCase(Locale.ROOT).startsWith(builder.getRemainingLowerCase())) {
                 builder.suggest(repoKey);
             }
@@ -236,7 +215,7 @@ public class HistoryCommand {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     public static final DateFormat DETAILED_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zzz");
 
-    private static void displayCommits(CommandContext<CommandSourceStack> ctx, @Nullable CommitInfo[] commits) throws CommandSyntaxException, IOException {
+    private void displayCommits(CommandContext<CommandSourceStack> ctx, @Nullable CommitInfo[] commits) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
         CommitInfo current = historyView.getCommit();
@@ -324,7 +303,7 @@ public class HistoryCommand {
 
     }
 
-    private static int log(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException, IOException {
+    private int log(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
 
@@ -357,7 +336,7 @@ public class HistoryCommand {
         return 1;
     }
 
-    private static int logBefore(CommandContext<CommandSourceStack> ctx, Sha1 commitHash) throws CommandSyntaxException, IOException {
+    private int logBefore(CommandContext<CommandSourceStack> ctx, Sha1 commitHash) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
 
@@ -378,7 +357,7 @@ public class HistoryCommand {
         return 1;
     }
 
-    private static int logAfter(CommandContext<CommandSourceStack> ctx, Sha1 commitHash) throws CommandSyntaxException, IOException {
+    private int logAfter(CommandContext<CommandSourceStack> ctx, Sha1 commitHash) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
 
@@ -399,7 +378,7 @@ public class HistoryCommand {
         return 1;
     }
 
-    private static int commit(CommandContext<CommandSourceStack> ctx, Sha1 sha1) throws CommandSyntaxException, IOException {
+    private int commit(CommandContext<CommandSourceStack> ctx, Sha1 sha1) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         MchRepository repository = historyView.getRepository();
 
