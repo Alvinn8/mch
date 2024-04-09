@@ -85,6 +85,7 @@ public class CommitOperation {
                     Dimension dimension = new Dimension(treeReference);
 
                     // Store region files
+                    int unmodifiedRegionFiles = 0;
 
                     for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
                         if (regionFileInfo.fileSize() == 0) {
@@ -104,7 +105,7 @@ public class CommitOperation {
                             // changed.
                             // We can simply reference the same version number that the previous commit has.
                             dimension.addRegionFile(currentRegionFileInfo);
-                            System.out.println("    Not modified: " + regionFileInfo.fileName());
+                            unmodifiedRegionFiles++;
                             continue;
                         }
 
@@ -192,6 +193,10 @@ public class CommitOperation {
                         );
                         dimension.addRegionFile(regionFileReference);
                     }
+
+                    System.out.println("    " + unmodifiedRegionFiles
+                        + (unmodifiedRegionFiles == 1 ? " region file" : " region files")
+                        + " were not modified");
 
                     // Save the dimension object and add it to the world
                     world.addDimension(
