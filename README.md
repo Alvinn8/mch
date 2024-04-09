@@ -1,28 +1,40 @@
-# mch
+<h1 align="center">mch</h1>
+
+<div align="center">
+
+[mch-cli](./mch-cli/README.md) | [mch-viewer](./mch-viewer/fabric/README.md)
+
 A "version control system" for Minecraft worlds.
 
-## Can be used to
-- Back up worlds in a storage efficient way.
-- Keep a history of worlds.
-- Version control system for worlds.
+</div>
+
+<hr>
+
+Can be used to back up worlds in a storage efficient way and keep a history of
+worlds. 
 
 ## How?
-When a new commit (a backup / snapshot of the world) is made, mch will only save
-the parts of the world that changed again. Everything that didn't change is not
-saved again.
+When a new commit (a backup / snapshot of the world) is made, mch will only
+re-save the parts of the world that changed. Everything that didn't change
+is not saved. This saves a ton of storage space and time!
 
-## Usage
-This tool is a command line interface (CLI).
+## Usage Overview
+> For detailed usage instructions, see the [mch-cli README](./mch-cli/README.md).
 
-To set up an mch repository inside a world folder that tracks the world, use the following commands.
+Mch is a command line interface (CLI) that works a bit like Git.
 
-```
-mch init
-mch world add local .
-```
+An mch repository holds the internal files mch needs to store the world. A
+Minecraft world is then added to the repository. By running `mch commit` the
+current snapshot of the world will be saved to the repository as a commit.
 
-then use `mch commit` to commit a snapshot of the world to the repository.
+You can list commits with `mch log` and restore to previous commits using
+`mch restore <commit hash>` which will restore the world to a folder called
+`mch-restore`.
 
-## ---
+Since restoring an entire world can take a while when the world is big,
+[mch-viewer](./mch-viewer/fabric/README.md) can be used to view commits in-game
+without having to restore the entire commit.
 
-Can be used to keep a history of a minecraft world. <ins>m</ins>ine<ins>c</ins>raft <ins>h</ins>istory = mch
+## Sounds cool?
+Check out [mch-cli](./mch-cli/README.md) for more details, or contact me on
+discord `@alvinn8` if you have questions or want to chat!
