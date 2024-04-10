@@ -5,6 +5,7 @@ import ca.bkaw.mch.fs.MchFileSystemProvider;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtFloat;
 import ca.bkaw.mch.nbt.NbtInt;
+import ca.bkaw.mch.nbt.NbtString;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.blob.Blob;
@@ -73,6 +74,11 @@ public class HistoryView {
             .setGenerator(new VoidChunkGenerator(
                 this.server.registryAccess().registryOrThrow(Registries.BIOME)
             ));
+
+        ResourceLocation dimensionType = this.getDimensionType(dimensionKey);
+        if (dimensionType != null) {
+            config.setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, dimensionType));
+        }
 
         String key = RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789");
         ResourceLocation id = new ResourceLocation(MchViewerFabric.NAMESPACE, key);
@@ -185,7 +191,7 @@ public class HistoryView {
     @NotNull
     public Vector4d getSpawn() {
         try {
-            Vector4d pos = this.readLevelDatSpawn();
+            Vector4d pos = this.getWorldSpawn();
             if (pos != null) {
                 return pos;
             }
@@ -195,7 +201,7 @@ public class HistoryView {
     }
 
     @Nullable
-    private Vector4d readLevelDatSpawn() throws IOException {
+    private NbtCompound readLevelData() throws IOException {
         World world = this.getWorld();
         Reference20<Dimension> dimensionRef = world.getDimension(Dimension.OVERWORLD);
         if (dimensionRef == null) {
@@ -210,14 +216,19 @@ public class HistoryView {
         Blob levelDatBlob = blobRef.reference().resolve(this.repository);
         DataInputStream stream = new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(levelDatBlob.getBytes())));
         NbtCompound nbt = NbtTag.readCompound(stream);
-        NbtCompound nbtData = (NbtCompound) nbt.get("Data");
-        if (nbtData == null) {
+        return (NbtCompound) nbt.get("Data");
+    }
+
+    @Nullable
+    private Vector4d getWorldSpawn() throws IOException {
+        NbtCompound levelData = this.readLevelData();
+        if (levelData == null) {
             return null;
         }
-        NbtTag nbtX = nbtData.get("SpawnX");
-        NbtTag nbtY = nbtData.get("SpawnY");
-        NbtTag nbtZ = nbtData.get("SpawnZ");
-        NbtTag nbtAngle = nbtData.get("SpawnAngle");
+        NbtTag nbtX = levelData.get("SpawnX");
+        NbtTag nbtY = levelData.get("SpawnY");
+        NbtTag nbtZ = levelData.get("SpawnZ");
+        NbtTag nbtAngle = levelData.get("SpawnAngle");
         if (nbtX == null || nbtY == null || nbtZ == null) {
             return null;
         }
@@ -228,10 +239,31 @@ public class HistoryView {
         return new Vector4d(x, y, z, angle);
     }
 
+    @Nullable
+    private ResourceLocation getDimensionType(ResourceLocation dimensionKey) throws IOException {
+        NbtCompound levelData = this.readLevelData();
+        if (levelData == null) {
+            return null;
+        }
+        if (!(levelData.get("WorldGenSettings") instanceof NbtCompound worldGenSettings)) {
+            return null;
+        }
+        if (!(worldGenSettings.get("dimensions") instanceof NbtCompound dimensions)) {
+            return null;
+        }
+        if (!(dimensions.get(dimensionKey.toString()) instanceof NbtCompound dimension)) {
+            return null;
+        }
+        if (!(dimension.get("type") instanceof NbtString type)) {
+            return null;
+        }
+        return ResourceLocation.read(type.getValue()).result().orElse(null);
+    }
+
     /**
      * The commit currently being viewed.
      *
-     * @return The commit.
+     * @return The commit.ys
      */
     public CommitInfo getCommit() {
         return this.commit;
