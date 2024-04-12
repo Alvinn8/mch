@@ -22,3 +22,7 @@ dependencies {
 tasks.compileJava {
     options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
 }
+
+tasks.shadowJar {
+    archiveFileName = "mch-cli-all.jar"
+}
