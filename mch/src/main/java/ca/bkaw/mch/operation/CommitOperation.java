@@ -31,7 +31,7 @@ import java.nio.file.Path;
  * Utility class for performing a commit.
  */
 public class CommitOperation {
-    public static void run(MchRepository repository, String commitMessage, boolean cache) throws IOException {
+    public static void run(MchRepository repository, String commitMessage, boolean cache, boolean verbose) throws IOException {
         long start = System.currentTimeMillis();
 
         // Read configuration and current commit from repository
@@ -86,12 +86,16 @@ public class CommitOperation {
 
                     // Store region files
                     int unmodifiedRegionFiles = 0;
+                    int emptyRegionFiles = 0;
 
                     for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
                         if (regionFileInfo.fileSize() == 0) {
                             // I am not sure how or why these empty region files are created, but since they
                             // are 0 bytes they do not contain valid data. Skip them to avoid crashing.
-                            System.out.println("    Skipping empty file (0 bytes): " + regionFileInfo.fileName());
+                            if (verbose) {
+                                System.out.println("    Skipping empty file (0 bytes): " + regionFileInfo.fileName());
+                            }
+                            emptyRegionFiles++;
                             continue;
                         }
 
@@ -105,6 +109,9 @@ public class CommitOperation {
                             // changed.
                             // We can simply reference the same version number that the previous commit has.
                             dimension.addRegionFile(currentRegionFileInfo);
+                            if (verbose) {
+                                System.out.println("    Not modified: " + regionFileInfo.fileName());
+                            }
                             unmodifiedRegionFiles++;
                             continue;
                         }
@@ -193,6 +200,10 @@ public class CommitOperation {
                         );
                         dimension.addRegionFile(regionFileReference);
                     }
+
+                    System.out.println("    " + emptyRegionFiles
+                        + (emptyRegionFiles == 1 ? " region file" : " region files")
+                        + " were empty (0 bytes)");
 
                     System.out.println("    " + unmodifiedRegionFiles
                         + (unmodifiedRegionFiles == 1 ? " region file" : " region files")

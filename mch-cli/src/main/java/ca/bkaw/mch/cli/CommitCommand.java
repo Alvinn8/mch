@@ -19,10 +19,13 @@ public class CommitCommand implements Runnable {
     @Option(names = "--no-cache", negatable = true, defaultValue = "true", description = "Skip caching by looking at the current commit.")
     boolean cache;
 
+    @Option(names = "--verbose", defaultValue = "false", description = "Print more information while processing the commit.")
+    boolean verbose;
+
     @Override
     public void run() {
         try {
-            CommitOperation.run(this.repository, this.commitMessage, this.cache);
+            CommitOperation.run(this.repository, this.commitMessage, this.cache, this.verbose);
         } catch (IOException e) {
             System.err.println("Failed to commit.");
             e.printStackTrace();
