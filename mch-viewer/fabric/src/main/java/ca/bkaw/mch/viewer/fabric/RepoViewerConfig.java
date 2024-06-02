@@ -71,11 +71,13 @@ public class RepoViewerConfig {
     }
 
     private void readSpawnOverride(Config config) {
-        double x = config.get("x");
-        double y = config.get("x");
-        double z = config.get("x");
-        float yaw = config.getOrElse("yaw", 0);
-        this.spawnOverride = new Vector4d(x, y, z, yaw);
+        Number x = config.get("x");
+        Number y = config.get("x");
+        Number z = config.get("x");
+        Number yaw = config.getOrElse("yaw", 0);
+        this.spawnOverride = new Vector4d(
+            x.doubleValue(), y.doubleValue(), z.doubleValue(), yaw.doubleValue()
+        );
     }
 
     public MchRepository getRepository() {
