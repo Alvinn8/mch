@@ -4,6 +4,8 @@ import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.commit.Commit;
+import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import com.mojang.brigadier.CommandDispatcher;
@@ -21,12 +23,15 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4d;
 
@@ -46,6 +51,9 @@ public class HistoryCommand {
     ));
     public static final SimpleCommandExceptionType NO_DEFAULT_REPO = new SimpleCommandExceptionType(net.minecraft.network.chat.Component.literal(
         "No default repo has configured, please specify which repo to view with /history view <repo>"
+    ));
+    public static final DynamicCommandExceptionType NO_DIMENSION = new DynamicCommandExceptionType(dimension -> net.minecraft.network.chat.Component.literal(
+        "No dimension '" + dimension + "' was found in the repository."
     ));
     
     private final MchViewerFabric mchViewer;
@@ -140,6 +148,22 @@ public class HistoryCommand {
                                     try {
                                         return commit(ctx, sha1);
                                     } catch (Throwable e) {
+                                        ctx.getSource().sendFailure(Component.text(e.toString()));
+                                        e.printStackTrace();
+                                        return 0;
+                                    }
+                                })
+                        )
+                )
+                .then(
+                    Commands.literal("dimension")
+                        .then(
+                            Commands.argument("key", ResourceLocationArgument.id())
+                                .suggests(this::suggestDimensions)
+                                .executes(ctx -> {
+                                    try {
+                                        return changeDimension(ctx, ResourceLocationArgument.getId(ctx, "key"));
+                                    } catch (IOException e) {
                                         ctx.getSource().sendFailure(Component.text(e.toString()));
                                         e.printStackTrace();
                                         return 0;
@@ -394,6 +418,50 @@ public class HistoryCommand {
         if (entity != null) {
             ctx.getSource().getServer().getCommands().performPrefixedCommand(entity.createCommandSourceStack(), "history log");
         }
+
+        return 1;
+    }
+
+    private CompletableFuture<Suggestions> suggestDimensions(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HistoryView historyView = getHistoryView(ctx);
+                World world = historyView.getWorld();
+                for (String key : world.getDimensions().keySet()) {
+                    if (key.toLowerCase(Locale.ROOT).startsWith(builder.getRemainingLowerCase())) {
+                        builder.suggest(key);
+                    }
+                }
+                return builder.build();
+            } catch (IOException | CommandSyntaxException e) {
+                // Suggest nothing
+                return builder.build();
+            }
+        });
+    }
+
+    private int changeDimension(CommandContext<CommandSourceStack> ctx, ResourceLocation key) throws CommandSyntaxException, IOException {
+        HistoryView historyView = getHistoryView(ctx);
+        World world = historyView.getWorld();
+        CommandSourceStack source = ctx.getSource();
+
+        Reference20<Dimension> dimension = world.getDimension(key.toString());
+        if (dimension == null) {
+            throw NO_DIMENSION.create(key);
+        }
+
+        DimensionView toDimension = historyView.viewDimension(key);
+        double fromScale = source.getLevel().dimensionType().coordinateScale();
+        double toScale = toDimension.getLevel().dimensionType().coordinateScale();
+        double scale = fromScale / toScale;
+
+        Vec3 pos = source.getPosition().multiply(scale, 1, scale);
+
+        ServerPlayer player = source.getPlayerOrException();
+        player.teleportTo(
+            toDimension.getLevel(), pos.x(), pos.y(), pos.z(),
+            player.getYRot(), player.getXRot()
+        );
 
         return 1;
     }
