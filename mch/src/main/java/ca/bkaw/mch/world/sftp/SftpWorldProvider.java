@@ -66,6 +66,10 @@ public class SftpWorldProvider implements WorldProvider {
     public List<RegionFileInfo> getRegionFiles(String dimension) throws IOException {
         String path = this.getDimensionPath(dimension) + "/region";
 
+        if (this.sftp.statExistence(path) == null) {
+            return List.of();
+        }
+
         return this.sftp.ls(path,
                 file -> file.getName().startsWith("r.") && file.getName().endsWith(".mca")
             )
