@@ -72,8 +72,8 @@ public class RepoViewerConfig {
 
     private void readSpawnOverride(Config config) {
         Number x = config.get("x");
-        Number y = config.get("x");
-        Number z = config.get("x");
+        Number y = config.get("y");
+        Number z = config.get("z");
         Number yaw = config.getOrElse("yaw", 0);
         this.spawnOverride = new Vector4d(
             x.doubleValue(), y.doubleValue(), z.doubleValue(), yaw.doubleValue()
