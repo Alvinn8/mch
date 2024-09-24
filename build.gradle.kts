@@ -1,6 +1,6 @@
 plugins {
     java
-    id("xyz.jpenilla.run-paper") version "2.1.0"
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 
@@ -9,7 +9,7 @@ version = "0.1-SNAPSHOT"
 
 tasks {
     runServer {
-        minecraftVersion("1.20.1")
+        minecraftVersion("1.21.1")
     }
 }
 
@@ -21,7 +21,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion.set(JavaLanguageVersion.of(21))
         }
     }
 

@@ -81,7 +81,7 @@ public class HistoryView {
         }
 
         String key = RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789");
-        ResourceLocation id = new ResourceLocation(MchViewerFabric.NAMESPACE, key);
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MchViewerFabric.NAMESPACE, key);
         ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, id);
 
         // Fantasy has the concept of temporary worlds, but they force a generated level
