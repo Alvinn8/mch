@@ -1,21 +1,37 @@
 package ca.bkaw.mch.repository;
 
 import ca.bkaw.mch.Sha1;
+import ca.bkaw.mch.chunk.RegionFileChunk;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
+import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.commit.Commit;
+import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.tree.Tree;
+import ca.bkaw.mch.object.world.World;
+import ca.bkaw.mch.object.worldcontainer.WorldContainer;
+import ca.bkaw.mch.region.MchRegionFile;
+import ca.bkaw.mch.region.RegionStorageVisitor;
+import ca.bkaw.mch.region.mc.McRegionFileWriter;
+import ca.bkaw.mch.util.StringPath;
+import ca.bkaw.mch.util.Util;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 
-public class MchRepository {
+public class MchRepository implements RepositoryAccess {
     /**
      * The root of the repository.
      */
@@ -135,5 +151,116 @@ public class MchRepository {
             throw new IllegalStateException("Configuration has not been read.");
         }
         return this.configuration;
+    }
+
+    @Override
+    public @Nullable DimensionAccess accessDimension(Sha1 commitSha1, Sha1 worldSha1, String dimensionKey) throws IOException {
+        MchRepository repository = this;
+        TrackedWorld trackedWorld = repository.getConfiguration().getTrackedWorld(worldSha1);
+        Commit commit = ObjectStorageTypes.COMMIT.read(commitSha1, repository);
+        WorldContainer worldContainer = commit.getWorldContainer().resolve(repository);
+        Reference20<World> worldRef = worldContainer.getWorld(worldSha1);
+        if (worldRef == null) {
+            return null;
+        }
+        World world = ObjectStorageTypes.WORLD.read(worldSha1, repository);
+        Reference20<Dimension> dimensionRef = world.getDimension(dimensionKey);
+        if (dimensionRef == null) {
+            return null;
+        }
+        Dimension dimension = dimensionRef.resolve(repository);
+
+        return new DimensionAccess() {
+            @Override
+            public InputStream restoreFile(StringPath path) throws IOException {
+                if (path.toString().startsWith("region/")) {
+                    String fileName = path.getFileName();
+                    if (!fileName.startsWith("r.") || !fileName.endsWith(".mca")) {
+                        return null;
+                    }
+                    String str = fileName.substring("r.".length(), fileName.length() - ".mca".length());
+                    String[] split = str.split("\\.");
+                    int regionX = Integer.parseInt(split[0]);
+                    int regionZ = Integer.parseInt(split[1]);
+                    Dimension.RegionFileReference regionFileRef = dimension.getRegionFile(regionX, regionZ);
+
+                    if (regionFileRef == null) {
+                        return null;
+                    }
+
+                    Path regionStoragePath = RegionStorageVisitor.getPath(
+                        repository, trackedWorld, dimensionKey, regionX, regionZ
+                    );
+
+                    Path mchRegionFilePath = MchRegionFile.getPath(
+                        repository, trackedWorld, dimensionKey, regionX, regionZ
+                    );
+
+                    Path mcRegionFilePath = Files.createTempFile("file-restore", ".mca");
+                    try (McRegionFileWriter regionFile = new McRegionFileWriter(mcRegionFilePath)) {
+                        int[] chunkVersionNumbers = MchRegionFile.read(mchRegionFilePath, regionFileRef.getVersionNumber());
+
+                        RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
+                            int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
+                            if (chunkVersionNumber != 0) {
+                                RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
+                                regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
+                            }
+                        });
+                    }
+                    return Files.newInputStream(mchRegionFilePath, StandardOpenOption.DELETE_ON_CLOSE);
+                }
+
+                // Non-region file.
+                Tree tree = dimension.getMiscellaneousFiles().resolve(repository);
+                for (int i = 0; i < path.getNameCount() - 1; i++) {
+                    String name = path.getName(i);
+                    Reference20<Tree> subTreeRef = tree.getSubTrees().get(name);
+                    if (subTreeRef == null) {
+                        return null;
+                    }
+                    tree = subTreeRef.resolve(repository);
+                }
+                String fileName = path.getFileName();
+				if (!tree.getFiles().containsKey(fileName)) {
+					return null;
+				}
+				Tree.BlobReference blobRef = tree.getFiles().get(fileName);
+				Blob blob = blobRef.reference().resolve(repository);
+				return new ByteArrayInputStream(blob.getBytes());
+			}
+
+            @Override
+            public List<String> list(StringPath path) throws IOException {
+                if (path.toString().startsWith("region/")) {
+                    if (path.getNameCount() != 1) {
+                        // No files in subdirectories of region.
+                        return List.of();
+                    }
+                    return dimension.getRegionFiles().stream().map(
+                        (region) -> Util.formatRegionFileName(region.getRegionX(), region.getRegionZ(), ".mca")
+                    ).toList();
+                }
+
+                // Non-region file.
+                Tree tree = dimension.getMiscellaneousFiles().resolve(repository);
+                for (int i = 0; i < path.getNameCount(); i++) {
+                    String name = path.getName(i);
+                    if (name.isEmpty() || ".".equals(name)) {
+                        continue;
+                    }
+                    Reference20<Tree> subTreeRef = tree.getSubTrees().get(name);
+                    if (subTreeRef == null) {
+                        return List.of();
+                    }
+                    tree = subTreeRef.resolve(repository);
+                }
+
+                List<String> list = new ArrayList<>(tree.getFiles().size() + tree.getSubTrees().size());
+				list.addAll(tree.getFiles().keySet());
+				list.addAll(tree.getSubTrees().keySet());
+                return list;
+            }
+        };
     }
 }
