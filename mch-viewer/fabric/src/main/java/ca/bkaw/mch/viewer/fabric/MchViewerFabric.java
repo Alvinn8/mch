@@ -1,7 +1,7 @@
 package ca.bkaw.mch.viewer.fabric;
 
-import ca.bkaw.mch.repository.MchRepository;
-import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.Sha1;
+import ca.bkaw.mch.repository.RepositoryAccess;
 import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.mojang.logging.LogUtils;
@@ -98,8 +98,8 @@ public class MchViewerFabric implements ModInitializer {
         this.dimensionViews.remove(levelKey, dimensionView);
     }
 
-    public HistoryView view(MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld, CommitInfo commit) throws IOException {
-        return new HistoryView(this, server, repository, trackedWorld, commit);
+    public HistoryView view(MinecraftServer server, RepositoryAccess repositoryAccess, Sha1 trackedWorldSha1, CommitInfo commit) throws IOException {
+        return new HistoryView(this, server, repositoryAccess, trackedWorldSha1, commit);
     }
 
     /**

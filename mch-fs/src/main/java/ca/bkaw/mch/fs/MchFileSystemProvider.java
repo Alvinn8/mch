@@ -1,8 +1,6 @@
 package ca.bkaw.mch.fs;
 
-import ca.bkaw.mch.object.dimension.Dimension;
-import ca.bkaw.mch.repository.MchRepository;
-import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.repository.DimensionAccess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,18 +41,15 @@ public class MchFileSystemProvider extends FileSystemProvider {
      * provides files on-demand from the mch repository.
      *
      * @param root The root path to wrap, must be a directory that exists.
-     * @param repository The mch repository.
-     * @param trackedWorld The tracked world.
-     * @param dimensionKey The dimension key.
-     * @param dimension The dimension snapshot.
+     * @param dimensionAccess The dimension access to access files from.
      * @return The file system.
      */
     @NotNull
-    public MchFileSystem newFileSystem(Path root, MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, Dimension dimension) {
+    public MchFileSystem newFileSystem(Path root, DimensionAccess dimensionAccess) {
         if (!Files.isDirectory(root)) {
             throw new IllegalArgumentException("Please make sure the provided path is a directory: " + root);
         }
-        return new MchFileSystem(this, root, repository, trackedWorld, dimensionKey, dimension);
+        return new MchFileSystem(this, root, dimensionAccess);
     }
 
     @Override

@@ -2,6 +2,8 @@ package ca.bkaw.mch.repository;
 
 import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.util.StringPath;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,7 @@ public interface DimensionAccess {
 	 * @return An input stream of the file contents.
 	 * @throws IOException If an I/O error occurs.
 	 */
+	@Nullable
 	InputStream restoreFile(StringPath path) throws IOException;
 
 	/**
@@ -30,5 +33,6 @@ public interface DimensionAccess {
 	 * @return A {@link Tree} object containing the directory.
 	 * @throws IOException If an I/O error occurs.
 	 */
+	@NotNull
 	List<String> list(StringPath path) throws IOException;
 }

@@ -1,5 +1,6 @@
 package ca.bkaw.mch.viewer.fabric;
 
+import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchFileSystemProvider;
 import ca.bkaw.mch.nbt.NbtCompound;
@@ -7,14 +8,10 @@ import ca.bkaw.mch.nbt.NbtFloat;
 import ca.bkaw.mch.nbt.NbtInt;
 import ca.bkaw.mch.nbt.NbtString;
 import ca.bkaw.mch.nbt.NbtTag;
-import ca.bkaw.mch.object.Reference20;
-import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.dimension.Dimension;
-import ca.bkaw.mch.object.tree.Tree;
-import ca.bkaw.mch.object.world.World;
-import ca.bkaw.mch.object.worldcontainer.WorldContainer;
-import ca.bkaw.mch.repository.MchRepository;
-import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.repository.DimensionAccess;
+import ca.bkaw.mch.repository.RepositoryAccess;
+import ca.bkaw.mch.util.StringPath;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -35,39 +32,37 @@ import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
 import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 public class HistoryView {
     private final MchViewerFabric mod;
     private final MinecraftServer server;
-    private final MchRepository repository;
-    private final TrackedWorld trackedWorld;
+    private final RepositoryAccess repositoryAccess;
+    private final Sha1 trackedWorldSha1;
     private final CachedCommits cachedCommits;
     private final Map<ResourceLocation, DimensionView> dimensionViews = new HashMap<>();
     private CommitInfo commit;
 
-    public HistoryView(MchViewerFabric mod, MinecraftServer server, MchRepository repository, TrackedWorld trackedWorld, CommitInfo commit) throws IOException {
+    public HistoryView(MchViewerFabric mod, MinecraftServer server, RepositoryAccess repositoryAccess, Sha1 trackedWorldSha1, CommitInfo commit) throws IOException {
         this.mod = mod;
         this.server = server;
-        this.repository = repository;
-        this.trackedWorld = trackedWorld;
+        this.repositoryAccess = repositoryAccess;
+        this.trackedWorldSha1 = trackedWorldSha1;
         this.commit = commit;
-        this.cachedCommits = new CachedCommits(repository);
+        this.cachedCommits = new CachedCommits(repositoryAccess);
         this.cachedCommits.setup(this.commit);
     }
 
     public DimensionView viewDimension(ResourceLocation dimensionKey) throws IOException {
-        World world = this.getWorld();
-        Dimension dimension = this.getDimension(world, dimensionKey);
-
         Fantasy fantasy = Fantasy.get(this.server);
         RuntimeWorldConfig config = new RuntimeWorldConfig()
             .setGameRule(GameRules.RULE_DAYLIGHT, false)
@@ -96,9 +91,11 @@ public class HistoryView {
 
         // Set up mch-fs before loading the world so that the world's folder is wrapped
         // by mch-fs when the world loads.
+        DimensionAccess dimensionAccess = this.repositoryAccess.accessDimension(
+            this.commit.hash(), this.trackedWorldSha1, dimensionKey.toString()
+        );
         MchFileSystem fileSystem = MchFileSystemProvider.INSTANCE.newFileSystem(
-            dimensionPath.toAbsolutePath(), this.repository, this.trackedWorld,
-            dimensionKey.toString(), dimension
+            dimensionPath.toAbsolutePath(), dimensionAccess
         );
         Path rootPath = fileSystem.getPath(".").toAbsolutePath().normalize();
 
@@ -153,35 +150,6 @@ public class HistoryView {
     }
 
     /**
-     * Get the {@link World} object from the current commit.
-     *
-     * @return The world object.
-     * @throws IOException If an I/O error occurs.
-     */
-    public World getWorld() throws IOException {
-        WorldContainer worldContainer = this.commit.commit().getWorldContainer().resolve(this.repository);
-        Reference20<World> worldRef = worldContainer.getWorld(this.trackedWorld.getId());
-        if (worldRef == null) {
-            throw new IllegalStateException(
-                "The world " + this.trackedWorld.getId() + " ("
-                    + this.trackedWorld.getName()
-                    + ") was not present in the commit."
-            );
-        }
-        return worldRef.resolve(this.repository);
-    }
-
-    private Dimension getDimension(World world, ResourceLocation dimensionKey) throws IOException {
-        Reference20<Dimension> dimensionRef = world.getDimension(dimensionKey.toString());
-        if (dimensionRef == null) {
-            throw new IllegalArgumentException(
-                "The dimension " + dimensionKey + " was not present in the commit."
-            );
-        }
-        return dimensionRef.resolve(this.repository);
-    }
-
-    /**
      * Get the spawn position and angle of the world being viewed.
      * <p>
      * The vector contains the x, y, z coordinates, and the w component is the angle (yaw).
@@ -202,21 +170,18 @@ public class HistoryView {
 
     @Nullable
     private NbtCompound readLevelData() throws IOException {
-        World world = this.getWorld();
-        Reference20<Dimension> dimensionRef = world.getDimension(Dimension.OVERWORLD);
-        if (dimensionRef == null) {
+        DimensionAccess dimensionAccess = this.repositoryAccess.accessDimension(this.commit.hash(), this.trackedWorldSha1, Dimension.OVERWORLD);
+        if (dimensionAccess == null) {
             return null;
         }
-        Dimension dimension = dimensionRef.resolve(this.repository);
-        Tree tree = dimension.getMiscellaneousFiles().resolve(this.repository);
-        Tree.BlobReference blobRef = tree.getFiles().get("level.dat");
-        if (blobRef == null) {
-            return null;
+        try (InputStream stream = dimensionAccess.restoreFile(StringPath.of("level.dat"))) {
+            if (stream == null) {
+                return null;
+            }
+            DataInputStream dataInput = new DataInputStream(new GZIPInputStream(stream));
+            NbtCompound nbt = NbtTag.readCompound(dataInput);
+            return (NbtCompound) nbt.get("Data");
         }
-        Blob levelDatBlob = blobRef.reference().resolve(this.repository);
-        DataInputStream stream = new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(levelDatBlob.getBytes())));
-        NbtCompound nbt = NbtTag.readCompound(stream);
-        return (NbtCompound) nbt.get("Data");
     }
 
     @Nullable
@@ -260,20 +225,28 @@ public class HistoryView {
         return ResourceLocation.read(type.getValue()).result().orElse(null);
     }
 
+    public List<String> getDimensions() throws IOException {
+        return this.repositoryAccess.getDimensions(this.commit.hash(), this.trackedWorldSha1);
+    }
+
     /**
      * The commit currently being viewed.
      *
-     * @return The commit.ys
+     * @return The commit.
      */
     public CommitInfo getCommit() {
         return this.commit;
     }
 
-    public MchRepository getRepository() {
-        return this.repository;
+    public RepositoryAccess getRepositoryAccess() {
+        return this.repositoryAccess;
     }
 
     public CachedCommits getCachedCommits() {
         return this.cachedCommits;
+    }
+
+    public Sha1 getTrackedWorldSha1() {
+        return this.trackedWorldSha1;
     }
 }

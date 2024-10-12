@@ -25,7 +25,7 @@ public class McRegionFileWriter implements AutoCloseable {
     private final int[] lastModified = new int[CHUNK_COUNT];
 
     public McRegionFileWriter(Path path) throws IOException {
-        if (Files.exists(path)) {
+        if (Files.exists(path) && Files.size(path) > 0) {
             throw new UnsupportedOperationException(
                 "A McRegionFileWriter can not edit existing region files."
             );

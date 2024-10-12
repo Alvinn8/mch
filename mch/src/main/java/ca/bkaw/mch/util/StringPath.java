@@ -60,7 +60,7 @@ public class StringPath {
 	 */
 	public String getName(int index) {
 		String[] parts = this.path.split("/");
-		if (index <= 0 || index >= parts.length) {
+		if (index < 0 || index >= parts.length) {
 			throw new IllegalArgumentException(index + " is out of bounds.");
 		}
 		return parts[0];

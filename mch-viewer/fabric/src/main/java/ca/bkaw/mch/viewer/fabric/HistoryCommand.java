@@ -4,10 +4,8 @@ import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.commit.Commit;
-import ca.bkaw.mch.object.dimension.Dimension;
-import ca.bkaw.mch.object.world.World;
-import ca.bkaw.mch.repository.MchRepository;
-import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.repository.DimensionAccess;
+import ca.bkaw.mch.repository.RepositoryAccess;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -196,19 +194,19 @@ public class HistoryCommand {
         if (repo == null) {
             throw NOT_A_REPO.create(repoKey);
         }
-        MchRepository repository = repo.getRepository();
-        TrackedWorld trackedWorld = repo.getTrackedWorld();
+        RepositoryAccess repositoryAccess = repo.getRepositoryAccess();
+        Sha1 trackedWorldSha1 = repo.getTrackedWorldSha1();
         MinecraftServer server = ctx.getSource().getServer();
 
-        Reference20<Commit> headCommitRef = repository.getHeadCommit();
+        Reference20<Commit> headCommitRef = repositoryAccess.getHeadCommit();
         if (headCommitRef == null) {
             throw new IllegalArgumentException("Repository is empty");
         }
 
-        Commit commit = headCommitRef.resolve(repository);
+        Commit commit = repositoryAccess.accessCommit(headCommitRef.getSha1());
         CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
 
-        HistoryView view = this.mchViewer.view(server, repository, trackedWorld, commitInfo);
+        HistoryView view = this.mchViewer.view(server, repositoryAccess, trackedWorldSha1, commitInfo);
         DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.location());
 
         ServerPlayer player = ctx.getSource().getPlayer();
@@ -364,7 +362,7 @@ public class HistoryCommand {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
 
-        Commit commit = ObjectStorageTypes.COMMIT.read(commitHash, historyView.getRepository());
+        Commit commit = historyView.getRepositoryAccess().accessCommit(commitHash);
         CommitInfo commitInfo = new CommitInfo(commit, commitHash);
 
         CommitInfo[] commits = new CommitInfo[11];
@@ -385,7 +383,7 @@ public class HistoryCommand {
         HistoryView historyView = getHistoryView(ctx);
         CachedCommits cachedCommits = historyView.getCachedCommits();
 
-        Commit commit = ObjectStorageTypes.COMMIT.read(commitHash, historyView.getRepository());
+        Commit commit = historyView.getRepositoryAccess().accessCommit(commitHash);
         CommitInfo commitInfo = new CommitInfo(commit, commitHash);
 
         CommitInfo[] commits = new CommitInfo[11];
@@ -404,10 +402,10 @@ public class HistoryCommand {
 
     private int commit(CommandContext<CommandSourceStack> ctx, Sha1 sha1) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
-        MchRepository repository = historyView.getRepository();
+        RepositoryAccess repositoryAccess = historyView.getRepositoryAccess();
 
         Reference20<Commit> ref = new Reference20<>(ObjectStorageTypes.COMMIT, sha1);
-        Commit commit = ref.resolve(repository);
+        Commit commit = repositoryAccess.accessCommit(ref.getSha1());
 
         historyView.setCommit(new CommitInfo(commit, ref.getSha1()));
 
@@ -426,8 +424,7 @@ public class HistoryCommand {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HistoryView historyView = getHistoryView(ctx);
-                World world = historyView.getWorld();
-                for (String key : world.getDimensions().keySet()) {
+                for (String key : historyView.getDimensions()) {
                     if (key.toLowerCase(Locale.ROOT).startsWith(builder.getRemainingLowerCase())) {
                         builder.suggest(key);
                     }
@@ -442,11 +439,12 @@ public class HistoryCommand {
 
     private int changeDimension(CommandContext<CommandSourceStack> ctx, ResourceLocation key) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
-        World world = historyView.getWorld();
         CommandSourceStack source = ctx.getSource();
 
-        Reference20<Dimension> dimension = world.getDimension(key.toString());
-        if (dimension == null) {
+        DimensionAccess dimensionAccess = historyView.getRepositoryAccess().accessDimension(
+            historyView.getCommit().hash(), historyView.getTrackedWorldSha1(), key.toString()
+        );
+        if (dimensionAccess == null) {
             throw NO_DIMENSION.create(key);
         }
 

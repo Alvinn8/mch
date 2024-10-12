@@ -1,9 +1,8 @@
 package ca.bkaw.mch.viewer.fabric;
 
-import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.commit.Commit;
-import ca.bkaw.mch.repository.MchRepository;
+import ca.bkaw.mch.repository.RepositoryAccess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,11 +21,11 @@ import java.util.List;
  * Subsequent lookups must always be done relative to a commit that is cached.
  */
 public class CachedCommits {
-    private final MchRepository repository;
+    private final RepositoryAccess repositoryAccess;
     private final List<CommitInfo> cachedCommits = new ArrayList<>();
 
-    public CachedCommits(MchRepository repository) {
-        this.repository = repository;
+    public CachedCommits(RepositoryAccess repositoryAccess) {
+        this.repositoryAccess = repositoryAccess;
     }
 
     /**
@@ -38,12 +37,12 @@ public class CachedCommits {
      * @param commit The commit.
      */
     public void setup(@NotNull CommitInfo commit) throws IOException {
-        if (this.cachedCommits.size() != 0) {
+        if (!this.cachedCommits.isEmpty()) {
             throw new IllegalStateException("May only call setup once.");
         }
         // Read the commit to ensure it exists in the repository. Throws
         // ObjectNotFoundException otherwise.
-        ObjectStorageTypes.COMMIT.read(commit.hash(), this.repository);
+        this.repositoryAccess.accessCommit(commit.hash());
 
         this.cachedCommits.add(commit);
     }
@@ -73,7 +72,7 @@ public class CachedCommits {
         if (previousCommitHash == null) {
             return null;
         }
-        Commit previousCommit = previousCommitHash.resolve(this.repository);
+        Commit previousCommit = this.repositoryAccess.accessCommit(previousCommitHash.getSha1());
         CommitInfo previous = new CommitInfo(previousCommit, previousCommitHash.getSha1());
         this.cachedCommits.add(index, previous);
         return previous;
@@ -97,7 +96,7 @@ public class CachedCommits {
             return this.cachedCommits.get(index + 1);
         }
 
-        Reference20<Commit> headHash = this.repository.getHeadCommit();
+        Reference20<Commit> headHash = this.repositoryAccess.getHeadCommit();
         if (headHash == null) {
             throw new IllegalStateException("No head");
         }
@@ -107,7 +106,7 @@ public class CachedCommits {
         }
         List<CommitInfo> toAdd = new ArrayList<>();
 
-        Commit headCommit = headHash.resolve(this.repository);
+        Commit headCommit = this.repositoryAccess.accessCommit(headHash.getSha1());
         CommitInfo next = new CommitInfo(headCommit, headHash.getSha1());
         while (true) {
             Reference20<Commit> prevHash = next.commit().getPreviousCommit();
@@ -119,7 +118,7 @@ public class CachedCommits {
                 // This means that the "next" variable holds the next commit.
                 break;
             }
-            Commit prev = prevHash.resolve(this.repository);
+            Commit prev = this.repositoryAccess.accessCommit(prevHash.getSha1());
             next = new CommitInfo(prev, prevHash.getSha1());
             toAdd.add(next);
         }
@@ -143,7 +142,7 @@ public class CachedCommits {
      * @throws IOException If an I/O error occurs.
      */
     public boolean hasNext(@NotNull CommitInfo commit) throws IOException {
-        Reference20<Commit> head = this.repository.getHeadCommit();
+        Reference20<Commit> head = this.repositoryAccess.getHeadCommit();
         if (head == null) {
             throw new IllegalArgumentException("Commit not in repository (empty repository).");
         }

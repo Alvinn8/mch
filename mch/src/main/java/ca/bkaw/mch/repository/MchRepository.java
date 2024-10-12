@@ -16,6 +16,7 @@ import ca.bkaw.mch.region.RegionStorageVisitor;
 import ca.bkaw.mch.region.mc.McRegionFileWriter;
 import ca.bkaw.mch.util.StringPath;
 import ca.bkaw.mch.util.Util;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedInputStream;
@@ -79,12 +80,7 @@ public class MchRepository implements RepositoryAccess {
         return this.root.resolve("head");
     }
 
-    /**
-     * Get the head commit, the latest commit.
-     *
-     * @return The head commit.
-     * @throws IOException If an I/O error occurs.
-     */
+    @Override
     @Nullable
     public Reference20<Commit> getHeadCommit() throws IOException {
         Path path = this.getHeadPath();
@@ -154,6 +150,37 @@ public class MchRepository implements RepositoryAccess {
     }
 
     @Override
+    public List<Sha1> getTrackedWorlds() {
+        return this.getConfiguration().getTrackedWorlds().stream().map(TrackedWorld::getId).toList();
+    }
+
+    @Override
+    public @Nullable Sha1 getTrackedWorld(String name) {
+        TrackedWorld trackedWorld = this.getConfiguration().getTrackedWorld(name);
+        if (trackedWorld == null) {
+            return null;
+        }
+        return trackedWorld.getId();
+    }
+
+    @Override
+    public List<String> getDimensions(Sha1 commitSha1, Sha1 worldSha1) throws IOException {
+        Commit commit = ObjectStorageTypes.COMMIT.read(commitSha1, this);
+        WorldContainer worldContainer = commit.getWorldContainer().resolve(this);
+        Reference20<World> worldRef = worldContainer.getWorld(worldSha1);
+        if (worldRef == null) {
+            return List.of();
+        }
+        World world = worldRef.resolve(this);
+        return world.getDimensions().keySet().stream().toList();
+    }
+
+    @Override
+    public Commit accessCommit(Sha1 commitSha1) throws IOException {
+        return ObjectStorageTypes.COMMIT.read(commitSha1, this);
+    }
+
+    @Override
     public @Nullable DimensionAccess accessDimension(Sha1 commitSha1, Sha1 worldSha1, String dimensionKey) throws IOException {
         MchRepository repository = this;
         TrackedWorld trackedWorld = repository.getConfiguration().getTrackedWorld(worldSha1);
@@ -163,7 +190,7 @@ public class MchRepository implements RepositoryAccess {
         if (worldRef == null) {
             return null;
         }
-        World world = ObjectStorageTypes.WORLD.read(worldSha1, repository);
+        World world = worldRef.resolve(repository);
         Reference20<Dimension> dimensionRef = world.getDimension(dimensionKey);
         if (dimensionRef == null) {
             return null;
@@ -172,6 +199,7 @@ public class MchRepository implements RepositoryAccess {
 
         return new DimensionAccess() {
             @Override
+            @Nullable
             public InputStream restoreFile(StringPath path) throws IOException {
                 if (path.toString().startsWith("region/")) {
                     String fileName = path.getFileName();
@@ -196,8 +224,10 @@ public class MchRepository implements RepositoryAccess {
                         repository, trackedWorld, dimensionKey, regionX, regionZ
                     );
 
-                    Path mcRegionFilePath = Files.createTempFile("file-restore", ".mca");
+                    Path mcRegionFilePath = Files.createTempFile("restore_" + fileName, ".mca");
+                    System.out.println("Writing to temp mca file " + mcRegionFilePath);
                     try (McRegionFileWriter regionFile = new McRegionFileWriter(mcRegionFilePath)) {
+                        if (true && Files.exists(mchRegionFilePath)) { // temp allow reading corrupted repos
                         int[] chunkVersionNumbers = MchRegionFile.read(mchRegionFilePath, regionFileRef.getVersionNumber());
 
                         RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
@@ -207,8 +237,9 @@ public class MchRepository implements RepositoryAccess {
                                 regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
                             }
                         });
+                        } // temp allow reading corrupted repos
                     }
-                    return Files.newInputStream(mchRegionFilePath, StandardOpenOption.DELETE_ON_CLOSE);
+                    return Files.newInputStream(mcRegionFilePath);
                 }
 
                 // Non-region file.
@@ -231,6 +262,7 @@ public class MchRepository implements RepositoryAccess {
 			}
 
             @Override
+            @NotNull
             public List<String> list(StringPath path) throws IOException {
                 if (path.toString().startsWith("region/")) {
                     if (path.getNameCount() != 1) {
