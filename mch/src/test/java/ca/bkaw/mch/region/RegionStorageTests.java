@@ -23,7 +23,7 @@ public class RegionStorageTests {
         saveRegionFile(this.path, "r.0.0_v2.mca");
 
         Sha1 sha1Before = Sha1.ofFile(this.path);
-        RegionStorageVisitor.visit(this.path, chunk -> {
+        RegionStorageVisitor.performVisit(this.path, false, chunk -> {
             // noop
         });
         Sha1 sha1After = Sha1.ofFile(this.path);
@@ -36,7 +36,7 @@ public class RegionStorageTests {
         Path regionFilePath = Path.of("src/test/resources/region/" + regionFileName);
         // Path regionFilePath = Path.of("../run/region/" + regionFileName);
         try (McRegionFileReader mcRegionFile = new McRegionFileReader(regionFilePath)) {
-            RegionStorageVisitor.visit(regionStoragePath, chunk -> {
+            RegionStorageVisitor.performVisit(regionStoragePath, false, chunk -> {
                 if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
                     NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
                     int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());

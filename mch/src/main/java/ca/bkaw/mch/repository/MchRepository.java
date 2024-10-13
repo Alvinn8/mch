@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -216,30 +215,26 @@ public class MchRepository implements RepositoryAccess {
                         return null;
                     }
 
-                    Path regionStoragePath = RegionStorageVisitor.getPath(
-                        repository, trackedWorld, dimensionKey, regionX, regionZ
-                    );
+                    Path tempFile = Files.createTempFile("restore_" + fileName, ".mca");
+                    try (McRegionFileWriter regionFile = new McRegionFileWriter(tempFile)) {
+                        // temp allow reading corrupted repos
+                        int[] chunkVersionNumbers = MchRegionFile.read(
+                            repository, trackedWorld, dimensionKey, regionX, regionZ,
+                            regionFileRef.getVersionNumber()
+                        );
 
-                    Path mchRegionFilePath = MchRegionFile.getPath(
-                        repository, trackedWorld, dimensionKey, regionX, regionZ
-                    );
-
-                    Path mcRegionFilePath = Files.createTempFile("restore_" + fileName, ".mca");
-                    System.out.println("Writing to temp mca file " + mcRegionFilePath);
-                    try (McRegionFileWriter regionFile = new McRegionFileWriter(mcRegionFilePath)) {
-                        if (true && Files.exists(mchRegionFilePath)) { // temp allow reading corrupted repos
-                        int[] chunkVersionNumbers = MchRegionFile.read(mchRegionFilePath, regionFileRef.getVersionNumber());
-
-                        RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
-                            int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
-                            if (chunkVersionNumber != 0) {
-                                RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
-                                regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
-                            }
-                        });
-                        } // temp allow reading corrupted repos
+                        RegionStorageVisitor.visitReadOnly(
+                            repository, trackedWorld, dimensionKey, regionX, regionZ,
+                            chunk -> {
+                                int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
+                                if (chunkVersionNumber != 0) {
+                                    RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
+                                    regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
+                                }
+                            });
                     }
-                    return Files.newInputStream(mcRegionFilePath);
+                    // TODO add StandardOpenOption.DELETE_ON_CLOSE when I am less traumatized
+                    return Files.newInputStream(tempFile);
                 }
 
                 // Non-region file.

@@ -8,6 +8,7 @@ import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.Util;
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -33,6 +34,9 @@ public class MchRegionFile {
 
     /**
      * Get the path to where an mch region file will be stored in the repository.
+     * <p>
+     * This file is important and should be handled with care. This method is
+     * therefore private to avoid exposing the path.
      *
      * @param repository The mch repository.
      * @param trackedWorld The tracked world.
@@ -41,7 +45,7 @@ public class MchRegionFile {
      * @param regionZ The region z coordinate.
      * @return The mch region file path.
      */
-    public static Path getPath(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ) {
+    private static Path getPath(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ) {
         Path mchRegionFolderPath = Util.getMchRegionFolderPath(
             repository, trackedWorld, dimensionKey
         );
@@ -50,6 +54,7 @@ public class MchRegionFile {
         );
         return mchRegionFolderPath.resolve(fileName);
     }
+
     /**
      * Store a new array of chunk version numbers in the specified mch region file.
      * <p>
@@ -57,12 +62,22 @@ public class MchRegionFile {
      * mch region file, the file will not be modified and the existing region file
      * version number is returned.
      *
-     * @param path The path to the mch region file.
+     * @param repository The mch repository.
+     * @param trackedWorld The tracked world.
+     * @param dimensionKey The dimension of the world.
+     * @param regionX The region x coordinate.
+     * @param regionZ The region z coordinate.
      * @param newChunkVersionNumbers The array of 1024 chunk version numbers.
      * @return The region file version number of the stored chunk version numbers.
      * @throws IOException If an I/O error occurs.
      */
-    public static int store(Path path, int[] newChunkVersionNumbers) throws IOException {
+    public static int store(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ, int[] newChunkVersionNumbers) throws IOException {
+        Path path = getPath(repository, trackedWorld, dimensionKey, regionX, regionZ);
+        return store(path, newChunkVersionNumbers);
+    }
+
+    @VisibleForTesting
+    static int store(Path path, int[] newChunkVersionNumbers) throws IOException {
         if (newChunkVersionNumbers.length != CHUNK_COUNT) {
             throw new IllegalArgumentException("Expected " + CHUNK_COUNT + " chunk version numbers");
         }
@@ -148,12 +163,22 @@ public class MchRegionFile {
      * Read an array of chunk version numbers to use to restore a region file to the
      * specified region file version number.
      *
-     * @param path The path to the mch region file.
+     * @param repository The mch repository.
+     * @param trackedWorld The tracked world.
+     * @param dimensionKey The dimension of the world.
+     * @param regionX The region x coordinate.
+     * @param regionZ The region z coordinate.
      * @param regionFileVersionNumber The region file version number.
      * @return The chunk version numbers for the specified region file version number.
      * @throws IOException If an I/O error occurs.
      */
-    public static int[] read(Path path, int regionFileVersionNumber) throws IOException {
+    public static int[] read(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ, int regionFileVersionNumber) throws IOException {
+        Path path = getPath(repository, trackedWorld, dimensionKey, regionX, regionZ);
+        return read(path, regionFileVersionNumber);
+    }
+
+    @VisibleForTesting
+    static int[] read(Path path, int regionFileVersionNumber) throws IOException {
         try (DataInputStream input = new DataInputStream(new BufferedInputStream(new ZstdInputStream(Files.newInputStream(path))))) {
             FileMagic.validate(input, MAGIC);
             int mchVersion = input.readInt();

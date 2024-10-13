@@ -89,26 +89,23 @@ public class RestoreCommand implements Callable<Integer> {
                     String regionFileName = Util.formatRegionFileName(regionFileReference.getRegionX(), regionFileReference.getRegionZ(), ".mca");
                     System.out.println("    " + regionFileName);
 
-                    Path regionStoragePath = RegionStorageVisitor.getPath(
-                        this.repository, trackedWorld, dimensionKey,
-                        regionFileReference.getRegionX(), regionFileReference.getRegionZ()
-                    );
-
-                    Path mchRegionFilePath = MchRegionFile.getPath(
-                        this.repository, trackedWorld, dimensionKey,
-                        regionFileReference.getRegionX(), regionFileReference.getRegionZ()
-                    );
-
                     Path mcRegionFilePath = regionFolderPath.resolve(regionFileName);
                     try (McRegionFileWriter regionFile = new McRegionFileWriter(mcRegionFilePath)) {
-                        int[] chunkVersionNumbers = MchRegionFile.read(mchRegionFilePath, regionFileReference.getVersionNumber());
-                        RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
-                            int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
-                            if (chunkVersionNumber != 0) {
-                                RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
-                                regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
-                            }
-                        });
+                        int[] chunkVersionNumbers = MchRegionFile.read(
+                            this.repository, trackedWorld, dimensionKey,
+                            regionFileReference.getRegionX(), regionFileReference.getRegionZ(),
+                            regionFileReference.getVersionNumber()
+                        );
+                        RegionStorageVisitor.visitReadOnly(
+                            this.repository, trackedWorld, dimensionKey,
+                            regionFileReference.getRegionX(), regionFileReference.getRegionZ(),
+                            chunk -> {
+                                int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
+                                if (chunkVersionNumber != 0) {
+                                    RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
+                                    regionFile.writeChunk(restoredChunk.nbt(), restoredChunk.lastModified());
+                                }
+                            });
                     }
                 }
             }

@@ -24,8 +24,6 @@ import ca.bkaw.mch.world.WorldProvider;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 /**
  * Utility class for performing a commit.
@@ -116,24 +114,16 @@ public class CommitOperation {
                             continue;
                         }
 
-                        Path regionStoragePath = RegionStorageVisitor.getPath(
-                            repository, trackedWorld, dimensionKey,
-                            regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
-                        );
-
-                        Path mchRegionFilePath = MchRegionFile.getPath(
-                            repository, trackedWorld, dimensionKey,
-                            regionFileInfo.getRegionX(), regionFileInfo.getRegionZ()
-                        );
-
-                        Files.createDirectories(regionStoragePath.getParent());
-
                         // Store each chunk and record the version numbers of all the chunks.
 
                         System.out.println("    " + regionFileInfo.fileName());
 
                         int[] currentChunkVersionNumbers = currentRegionFileInfo != null
-                            ? MchRegionFile.read(mchRegionFilePath, currentRegionFileInfo.getVersionNumber())
+                            ? MchRegionFile.read(
+                                repository, trackedWorld, dimensionKey,
+                                regionFileInfo.getRegionX(), regionFileInfo.getRegionZ(),
+                                currentRegionFileInfo.getVersionNumber()
+                            )
                             : null;
 
                         int[] chunkVersionNumbers = new int[1024];
@@ -141,55 +131,62 @@ public class CommitOperation {
                             RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName(), regionFileInfo.fileSize());
                             McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
                         ) {
-                            RegionStorageVisitor.visit(regionStoragePath, chunk -> {
-                                if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
-                                    // There is a chunk in the region file
+                            RegionStorageVisitor.visit(
+                                repository, trackedWorld, dimensionKey,
+                                regionFileInfo.getRegionX(), regionFileInfo.getRegionZ(),
+                                chunk -> {
+                                    if (mcRegionFile.hasChunk(chunk.getChunkX(), chunk.getChunkZ())) {
+                                        // There is a chunk in the region file
 
-                                    // Get when it was last modified
-                                    int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
+                                        // Get when it was last modified
+                                        int chunkLastModified = mcRegionFile.getChunkLastModified(chunk.getChunkX(), chunk.getChunkZ());
 
-                                    if (currentChunkVersionNumbers != null) {
-                                        // We can use the previous chunk version numbers to get the previous last
-                                        // modified time.
-                                        int currentChunkVersionNumber = currentChunkVersionNumbers[chunk.getIndex()];
+                                        if (currentChunkVersionNumbers != null) {
+                                            // We can use the previous chunk version numbers to get the previous last
+                                            // modified time.
+                                            int currentChunkVersionNumber = currentChunkVersionNumbers[chunk.getIndex()];
 
-                                        // If there was no chunk in the last commit the version number is zero.
-                                        // Otherwise, check if it has been changed since last commit.
-                                        if (currentChunkVersionNumber != 0 && chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
-                                            // The chunk has not been modified since the last commit.
-                                            // We do not need to store it again.
-                                            chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumber;
-                                            return;
+                                            // If there was no chunk in the last commit the version number is zero.
+                                            // Otherwise, check if it has been changed since last commit.
+                                            if (currentChunkVersionNumber != 0 && chunk.getLastModified(currentChunkVersionNumber) == chunkLastModified) {
+                                                // The chunk has not been modified since the last commit.
+                                                // We do not need to store it again.
+                                                chunkVersionNumbers[chunk.getIndex()] = currentChunkVersionNumber;
+                                                return;
+                                            }
                                         }
-                                    }
 
-                                    // Read the chunk nbt
-                                    NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
+                                        // Read the chunk nbt
+                                        NbtCompound chunkNbt = mcRegionFile.readChunkNbt(chunk.getChunkX(), chunk.getChunkZ());
 
-                                    NbtTag inhabitedTime = chunkNbt.get("InhabitedTime");
+                                        NbtTag inhabitedTime = chunkNbt.get("InhabitedTime");
 
-                                    // TODO make this configurable per repo.
-                                    //  Default should probably be to be 100% lossless
-                                    if (inhabitedTime instanceof NbtLong nbtLong && nbtLong.getValue() <= 0) {
-                                        // Skipping chunk because it has not been inhabited by players.
-                                        chunkVersionNumbers[chunk.getIndex()] = 0;
+                                        // TODO make this configurable per repo.
+                                        //  Default should probably be to be 100% lossless
+                                        if (inhabitedTime instanceof NbtLong nbtLong && nbtLong.getValue() <= 0) {
+                                            // Skipping chunk because it has not been inhabited by players.
+                                            chunkVersionNumbers[chunk.getIndex()] = 0;
+                                        } else {
+                                            // Store the chunk
+                                            int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
+
+                                            // Save the version number of the chunk
+                                            chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;
+                                        }
                                     } else {
-                                        // Store the chunk
-                                        int chunkVersionNumber = chunk.store(chunkNbt, chunkLastModified);
-
-                                        // Save the version number of the chunk
-                                        chunkVersionNumbers[chunk.getIndex()] = chunkVersionNumber;
+                                        // There is no chunk. The version number is 0.
+                                        chunkVersionNumbers[chunk.getIndex()] = 0;
                                     }
-                                } else {
-                                    // There is no chunk. The version number is 0.
-                                    chunkVersionNumbers[chunk.getIndex()] = 0;
-                                }
-                            });
+                                });
                         }
 
                         // Use the chunk version numbers to create a region file version number
 
-                        int regionFileVersionNumber = MchRegionFile.store(mchRegionFilePath, chunkVersionNumbers);
+                        int regionFileVersionNumber = MchRegionFile.store(
+                            repository, trackedWorld, dimensionKey,
+                            regionFileInfo.getRegionX(), regionFileInfo.getRegionZ(),
+                            chunkVersionNumbers
+                        );
 
                         // Add the region file to the dimension object
                         Dimension.RegionFileReference regionFileReference = new Dimension.RegionFileReference(

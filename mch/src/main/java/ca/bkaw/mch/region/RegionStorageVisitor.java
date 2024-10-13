@@ -12,6 +12,7 @@ import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -45,14 +46,18 @@ public interface RegionStorageVisitor {
      *
      * @param chunk The chunk.
      * @throws IOException Throw if an I/O error occurs. An IOException thrown from this
-     * method will cause the visit to stop and the {@link #visit(Path,
-     * RegionStorageVisitor)} or {@link #visitReadOnly(Path, RegionStorageVisitor)}
+     * method will cause the visit to stop and the
+     * {@link #visit(MchRepository, TrackedWorld, String, int, int, RegionStorageVisitor)} or
+     * {@link #visitReadOnly(MchRepository, TrackedWorld, String, int, int, RegionStorageVisitor)}
      * method will throw the IOException.
      */
     void visit(RegionStorageVisitor.Chunk chunk) throws IOException;
 
     /**
      * Get the path to where a region storage file will be stored in the repository.
+     * <p>
+     * Since this file is important it needs to be handled with care. This method is
+     * therefore private to avoid exposing this path.
      *
      * @param repository The mch repository.
      * @param trackedWorld The tracked world.
@@ -61,7 +66,7 @@ public interface RegionStorageVisitor {
      * @param regionZ The region z coordinate.
      * @return The region storage file path.
      */
-    static Path getPath(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ) {
+    private static Path getPath(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ) {
         Path mchRegionFolderPath = Util.getMchRegionFolderPath(
             repository, trackedWorld, dimensionKey
         );
@@ -74,26 +79,36 @@ public interface RegionStorageVisitor {
     /**
      * Visit an mch region storage file for reading and writing.
      *
-     * @param regionStoragePath The path to the mch region storage file.
-     * @param visitor The visitor.
+     * @param repository The mch repository.
+     * @param trackedWorld The tracked world.
+     * @param dimensionKey The dimension of the world.
+     * @param regionX The region x coordinate.
+     * @param regionZ The region z coordinate.     * @param visitor The visitor.
      * @throws IOException If an I/O error occurs.
      */
-    static void visit(Path regionStoragePath, RegionStorageVisitor visitor) throws IOException {
+    static void visit(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ, RegionStorageVisitor visitor) throws IOException {
+        Path regionStoragePath = getPath(repository, trackedWorld, dimensionKey, regionX, regionZ);
+        Files.createDirectories(regionStoragePath.getParent());
         performVisit(regionStoragePath, false, visitor);
     }
 
     /**
      * Visit an mch region file for reading.
      *
-     * @param regionStoragePath The mch region file.
-     * @param visitor The visitor.
+     * @param repository The mch repository.
+     * @param trackedWorld The tracked world.
+     * @param dimensionKey The dimension of the world.
+     * @param regionX The region x coordinate.
+     * @param regionZ The region z coordinate.     * @param visitor The visitor.
      * @throws IOException If an I/O error occurs.
      */
-    static void visitReadOnly(Path regionStoragePath, RegionStorageVisitor visitor) throws IOException {
+    static void visitReadOnly(MchRepository repository, TrackedWorld trackedWorld, String dimensionKey, int regionX, int regionZ, RegionStorageVisitor visitor) throws IOException {
+        Path regionStoragePath = getPath(repository, trackedWorld, dimensionKey, regionX, regionZ);
         performVisit(regionStoragePath, true, visitor);
     }
 
-    private static void performVisit(Path path, boolean readOnly, RegionStorageVisitor visitor) throws IOException {
+    @VisibleForTesting
+    static void performVisit(Path path, boolean readOnly, RegionStorageVisitor visitor) throws IOException {
         Path tempOutputFile = readOnly ? null
             : Files.createTempFile(path.getParent(), path.getFileName().toString(), ".mchrs-temp");
 

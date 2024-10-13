@@ -56,31 +56,28 @@ public class ResearchCommand {
                 Dimension dimension = entry2.getValue().resolve(this.repository);
 
                 for (Dimension.RegionFileReference regionFileRef : dimension.getRegionFiles()) {
-                    Path regionStoragePath = RegionStorageVisitor.getPath(
+                    int[] chunkVersionNumbers = MchRegionFile.read(
                         this.repository, trackedWorld, dimensionKey,
-                        regionFileRef.getRegionX(), regionFileRef.getRegionZ()
+                        regionFileRef.getRegionX(), regionFileRef.getRegionZ(),
+                        regionFileRef.getVersionNumber()
                     );
-
-                    Path mchRegionFilePath = MchRegionFile.getPath(
+                    RegionStorageVisitor.visitReadOnly(
                         this.repository, trackedWorld, dimensionKey,
-                        regionFileRef.getRegionX(), regionFileRef.getRegionZ()
-                    );
-
-                    int[] chunkVersionNumbers = MchRegionFile.read(mchRegionFilePath, regionFileRef.getVersionNumber());
-                    RegionStorageVisitor.visitReadOnly(regionStoragePath, chunk -> {
-                        int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
-                        if (chunkVersionNumber != 0) {
-                            RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
-                            NbtTag nbtTag = restoredChunk.nbt().get("InhabitedTime");
-                            if (nbtTag == null) {
-                                output.println("null");
-                            } else if (nbtTag instanceof NbtLong nbtLong) {
-                                output.println(nbtLong.getValue());
-                            } else {
-                                throw new RuntimeException("Weird InhabitedTime type. " + nbtTag);
+                        regionFileRef.getRegionX(), regionFileRef.getRegionZ(),
+                        chunk -> {
+                            int chunkVersionNumber = chunkVersionNumbers[chunk.getIndex()];
+                            if (chunkVersionNumber != 0) {
+                                RegionFileChunk restoredChunk = chunk.restore(chunkVersionNumber);
+                                NbtTag nbtTag = restoredChunk.nbt().get("InhabitedTime");
+                                if (nbtTag == null) {
+                                    output.println("null");
+                                } else if (nbtTag instanceof NbtLong nbtLong) {
+                                    output.println(nbtLong.getValue());
+                                } else {
+                                    throw new RuntimeException("Weird InhabitedTime type. " + nbtTag);
+                                }
                             }
-                        }
-                    });
+                        });
                 }
             }
         }
