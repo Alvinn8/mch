@@ -3,6 +3,9 @@ package ca.bkaw.mch.util;
 /**
  * An abstract pathname that is not tied to a file system. Used to represent paths
  * relative to a world.
+ * <p>
+ * The forward slash {@code /} is always used as a directory separator regardless
+ * of operating system.
  */
 public class StringPath {
 	private final String path;
@@ -18,7 +21,7 @@ public class StringPath {
 	 * @return The {@link StringPath}.
 	 */
 	public static StringPath of(String path) {
-		return new StringPath(path);
+		return new StringPath(path.replace('\\', '/'));
 	}
 
 	/**
