@@ -8,64 +8,64 @@ package ca.bkaw.mch.util;
  * of operating system.
  */
 public class StringPath {
-	private final String path;
+    private final String path;
 
-	private StringPath(String path) {
-		this.path = path;
-	}
+    private StringPath(String path) {
+        this.path = path;
+    }
 
-	/**
-	 * Create a {@link StringPath} from a {@link String} containing the path.
-	 *
-	 * @param path The {@link StringPath}.
-	 * @return The {@link StringPath}.
-	 */
-	public static StringPath of(String path) {
-		return new StringPath(path.replace('\\', '/'));
-	}
+    /**
+     * Create a {@link StringPath} from a {@link String} containing the path.
+     *
+     * @param path The {@link StringPath}.
+     * @return The {@link StringPath}.
+     */
+    public static StringPath of(String path) {
+        return new StringPath(path.replace('\\', '/'));
+    }
 
-	/**
-	 * A path that represents the root directory of the world.
-	 *
-	 * @return The {@link StringPath}.
-	 */
-	public static StringPath root() {
-		return new StringPath("/");
-	}
+    /**
+     * A path that represents the root directory of the world.
+     *
+     * @return The {@link StringPath}.
+     */
+    public static StringPath root() {
+        return new StringPath("/");
+    }
 
-	@Override
-	public String toString() {
-		return this.path;
-	}
+    @Override
+    public String toString() {
+        return this.path;
+    }
 
-	public StringPath resolve(String relative) {
-		if (relative.startsWith("/")) {
-			return new StringPath(relative);
-		}
-		return new StringPath(Util.trailingSlash(this.path) + relative);
-	}
+    public StringPath resolve(String relative) {
+        if (relative.startsWith("/")) {
+            return new StringPath(relative);
+        }
+        return new StringPath(Util.trailingSlash(this.path) + relative);
+    }
 
-	public String getFileName() {
-		int index = this.path.lastIndexOf('/');
-		return this.path.substring(index + 1);
-	}
+    public String getFileName() {
+        int index = this.path.lastIndexOf('/');
+        return this.path.substring(index + 1);
+    }
 
-	/**
-	 * Get the name part of the path.
-	 *
-	 * @param index The index of the part.
-	 * @return The name.
-	 * @throws IllegalArgumentException If the index is negative or out of bounds.
-	 */
-	public String getName(int index) {
-		String[] parts = this.path.split("/");
-		if (index < 0 || index >= parts.length) {
-			throw new IllegalArgumentException(index + " is out of bounds.");
-		}
-		return parts[0];
-	}
+    /**
+     * Get the name part of the path.
+     *
+     * @param index The index of the part.
+     * @return The name.
+     * @throws IllegalArgumentException If the index is negative or out of bounds.
+     */
+    public String getName(int index) {
+        String[] parts = this.path.split("/");
+        if (index < 0 || index >= parts.length) {
+            throw new IllegalArgumentException(index + " is out of bounds.");
+        }
+        return parts[0];
+    }
 
-	public int getNameCount() {
-		return this.path.split("/").length;
-	}
+    public int getNameCount() {
+        return this.path.split("/").length;
+    }
 }

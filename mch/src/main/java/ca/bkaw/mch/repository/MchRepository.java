@@ -248,13 +248,13 @@ public class MchRepository implements RepositoryAccess {
                     tree = subTreeRef.resolve(repository);
                 }
                 String fileName = path.getFileName();
-				if (!tree.getFiles().containsKey(fileName)) {
-					return null;
-				}
-				Tree.BlobReference blobRef = tree.getFiles().get(fileName);
-				Blob blob = blobRef.reference().resolve(repository);
-				return new ByteArrayInputStream(blob.getBytes());
-			}
+                if (!tree.getFiles().containsKey(fileName)) {
+                    return null;
+                }
+                Tree.BlobReference blobRef = tree.getFiles().get(fileName);
+                Blob blob = blobRef.reference().resolve(repository);
+                return new ByteArrayInputStream(blob.getBytes());
+            }
 
             @Override
             @NotNull
@@ -284,8 +284,8 @@ public class MchRepository implements RepositoryAccess {
                 }
 
                 List<String> list = new ArrayList<>(tree.getFiles().size() + tree.getSubTrees().size());
-				list.addAll(tree.getFiles().keySet());
-				list.addAll(tree.getSubTrees().keySet());
+                list.addAll(tree.getFiles().keySet());
+                list.addAll(tree.getSubTrees().keySet());
                 return list;
             }
         };
