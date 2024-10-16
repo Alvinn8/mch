@@ -42,11 +42,7 @@ public class StringPath {
 		if (relative.startsWith("/")) {
 			return new StringPath(relative);
 		}
-		String str = this.path;
-		if (!str.endsWith("/")) {
-			str += "/";
-		}
-		return new StringPath(str + relative);
+		return new StringPath(Util.trailingSlash(this.path) + relative);
 	}
 
 	public String getFileName() {

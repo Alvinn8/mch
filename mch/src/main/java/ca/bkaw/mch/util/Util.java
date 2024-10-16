@@ -82,4 +82,43 @@ public final class Util {
         Files.move(from, to);
         Files.deleteIfExists(oldFilePath);
     }
+
+    /**
+     * Remove a slash at the end of the string, if there is one.
+     *
+     * @param str The string.
+     * @return The string without a trailing slash.
+     */
+    public static String noTrailingSlash(String str) {
+        if (str.endsWith("/")) {
+            return str.substring(0, str.length() - 1);
+        }
+        return str;
+    }
+
+    /**
+     * Add a slash at the end of the string, if there is none.
+     *
+     * @param str The string.
+     * @return The string with a trailing slash.
+     */
+    public static String trailingSlash(String str) {
+        if (!str.endsWith("/")) {
+            return str + "/";
+        }
+        return str;
+    }
+
+    /**
+     * Remove a slash at the start of the string, if there is one.
+     *
+     * @param str The string.
+     * @return The string without a leading slash.
+     */
+    public static String noLeadingSlash(String str) {
+        if (str.startsWith("/")) {
+            return str.substring(1);
+        }
+        return str;
+    }
 }

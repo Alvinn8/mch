@@ -27,7 +27,7 @@ public interface RepositoryAccess {
 	 *
 	 * @return The id.
 	 */
-	List<Sha1> getTrackedWorlds();
+	List<Sha1> getTrackedWorlds() throws IOException;
 
 	/**
 	 * Get the id of a tracked world by world name. If it does not exist, {@code null}
@@ -37,7 +37,7 @@ public interface RepositoryAccess {
 	 * @return The SHA-1 id of the tracked world, or null.
 	 */
 	@Nullable
-	Sha1 getTrackedWorld(String name);
+	Sha1 getTrackedWorld(String name) throws IOException;
 
 	/**
 	 * Get the dimensions that exist for a particular commit in the specified world.

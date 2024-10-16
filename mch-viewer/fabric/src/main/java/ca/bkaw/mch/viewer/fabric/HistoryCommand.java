@@ -82,7 +82,7 @@ public class HistoryCommand {
                                     String repoKey = StringArgumentType.getString(ctx, "repo");
                                     try {
                                         return view(ctx, repoKey);
-                                    } catch (IOException e) {
+                                    } catch (Throwable e) {
                                         ctx.getSource().sendFailure(Component.text("Failed to create history view. See the server console for an error message."));
                                         e.printStackTrace();
                                         return 0;

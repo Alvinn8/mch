@@ -3,11 +3,14 @@ package ca.bkaw.mch.viewer.fabric;
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.RepositoryAccess;
+import ca.bkaw.mch.repository.remote.RemoteRepositoryAccess;
 import com.electronwill.nightconfig.core.Config;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4d;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -78,6 +81,11 @@ public class RepoViewerConfig {
 
             // Use the repository itself as the RepositoryAccess
             return repository;
+        }
+        if (config.contains("url")) {
+            String strUrl = config.get("url");
+            URL url = URI.create(strUrl).toURL();
+            return new RemoteRepositoryAccess(url, "N/A");
         }
         throw new RuntimeException("A repo needs to either have a 'path' or 'url'.");
     }
