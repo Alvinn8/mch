@@ -1,6 +1,7 @@
 package ca.bkaw.mch.cli;
 
 import ca.bkaw.mch.cli.ftp.FtpCommand;
+import ca.bkaw.mch.cli.hub.HubCommand;
 import ca.bkaw.mch.cli.research.ResearchCommand;
 import ca.bkaw.mch.cli.sftp.SftpCommand;
 import ca.bkaw.mch.cli.world.WorldCommand;
@@ -11,6 +12,7 @@ import picocli.CommandLine.Command;
     CommitCommand.class,
     CatCommand.class,
     FtpCommand.class,
+    HubCommand.class,
     InitCommand.class,
     LogCommand.class,
     ResearchCommand.class,

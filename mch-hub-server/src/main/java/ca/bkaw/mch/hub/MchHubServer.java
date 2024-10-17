@@ -29,4 +29,8 @@ public class MchHubServer {
         this.httpServer.createContext("/repo/" + identifier + "/v1/restoreFile", handler::restoreFile);
         this.httpServer.createContext("/repo/" + identifier + "/v1/list", handler::list);
     }
+
+    public void stop(int delay) {
+        this.httpServer.stop(delay);
+    }
 }

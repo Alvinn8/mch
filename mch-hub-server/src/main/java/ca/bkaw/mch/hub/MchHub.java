@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class MchHub {
-    public static void start(InetSocketAddress addr) throws IOException {
+    public static MchHubServer start(InetSocketAddress addr) throws IOException {
         MchHubServer server = new MchHubServer();
 
         Path configPath = Path.of("mch-hub.toml");
@@ -20,7 +20,7 @@ public class MchHub {
             Config reposConfig = config.get("repos");
             if (reposConfig == null) {
                 System.out.println("mch-hub-server is not configured. Add a repository to mch-hub.toml to get started!");
-                return;
+                return null;
             }
             for (Config.Entry entry : reposConfig.entrySet()) {
                 String key = entry.getKey();
@@ -44,6 +44,7 @@ public class MchHub {
 
         server.start(addr);
         System.out.println("Starting mch-hub-server on port " + addr.getPort());
+        return server;
     }
 
     public static void main(String[] args) throws IOException {

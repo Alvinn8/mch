@@ -50,7 +50,7 @@ public class RepoViewerConfig {
                 }
             }
         } else {
-            trackedWorldSha1 = trackedWorlds.getFirst();
+            trackedWorldSha1 = trackedWorlds.iterator().next();
         }
         if (trackedWorldSha1 == null) {
             throw new RuntimeException("Unable to find tracked world.");
