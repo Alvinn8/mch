@@ -47,9 +47,24 @@ public class SftpWorldProvider implements WorldProvider {
                 case "region" -> dimensions.add(Dimension.OVERWORLD);
                 case Util.NETHER_FOLDER -> dimensions.add(Dimension.NETHER);
                 case Util.THE_END_FOLDER -> dimensions.add(Dimension.THE_END);
+                case "dimensions" -> {
+                    for (RemoteResourceInfo namespaceFolder : this.sftp.ls(this.worldPath + "/dimensions")) {
+                        if (!namespaceFolder.isDirectory()) {
+                            continue;
+                        }
+                        String namespace = namespaceFolder.getName();
+                        for (RemoteResourceInfo keyFolder : this.sftp.ls(this.worldPath + "/dimensions/" + namespace)) {
+                            if (!keyFolder.isDirectory()) {
+                                continue;
+                            }
+                            String key = keyFolder.getName();
+                            String dimensionKey = namespace + ':' + key;
+                            dimensions.add(dimensionKey);
+                        }
+                    }
+                }
             }
         }
-        // TODO custom dimensions
         return dimensions;
     }
 
