@@ -5,6 +5,7 @@ import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.tree.Tree;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
+import ca.bkaw.mch.util.StringPath;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -19,6 +20,15 @@ import java.util.function.Predicate;
  * provider object should be closed.
  */
 public interface WorldProvider extends AutoCloseable {
+
+    List<FileInfo> list(StringPath path);
+    @Nullable
+    FileInfo.Metadata stat(StringPath path);
+    RandomAccessReader openFile(StringPath path, long estimatedSize);
+    byte[] readFile(StringPath path, long estimatedSize);
+
+    // Old
+
     /**
      * Get the dimensions that this world has.
      *
