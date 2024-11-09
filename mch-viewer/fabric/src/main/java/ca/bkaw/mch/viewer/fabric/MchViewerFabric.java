@@ -82,8 +82,12 @@ public class MchViewerFabric implements ModInitializer {
                 String key = entry.getKey();
                 Config repoConfig = entry.getValue();
 
-                RepoViewerConfig repo = RepoViewerConfig.fromConfig(repoConfig);
-                this.repoViewerConfigs.put(key, repo);
+                try {
+                    RepoViewerConfig repo = RepoViewerConfig.fromConfig(repoConfig);
+                    this.repoViewerConfigs.put(key, repo);
+                } catch (Throwable e) {
+                    LOGGER.error("Could not load repository '{}'.", key, e);
+                }
             }
 
             config.save();
