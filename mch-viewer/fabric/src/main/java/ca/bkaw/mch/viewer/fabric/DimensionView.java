@@ -4,8 +4,11 @@ import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchPath;
 import net.minecraft.server.level.ServerLevel;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
+import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
 public final class DimensionView {
     private final HistoryView parent;
@@ -53,5 +56,34 @@ public final class DimensionView {
             return new MchPath(this.fileSystem, original);
         }
         return original;
+    }
+
+    public CompletableFuture<Void> preloadArea(double blockX, double blockZ) {
+        if (true) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.runAsync(() -> {
+            int middleRegionX = (int) blockX >> 9;
+            int middleRegionZ = (int) blockZ >> 9;
+
+            ServerLevel world = this.worldHandle.asWorld();
+            Path dimensionPath = ((MinecraftServerAccess) world).getSession().getDimensionPath(world.dimension());
+            Path regionFolder = this.wrapPath(dimensionPath.resolve("region"));
+            Path entitiesFolder = this.wrapPath(dimensionPath.resolve("entities"));
+
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    int regionX = middleRegionX + dx;
+                    int regionZ = middleRegionZ + dz;
+
+                    // Access the file to make sure it is restored.
+                    String fileName = regionX + "." + regionZ + ".mca";
+                    Path regionPath = regionFolder.resolve(fileName);
+                    Path entitiesPath = entitiesFolder.resolve(fileName);
+                    Files.exists(regionPath);
+                    Files.exists(entitiesPath);
+                }
+            }
+        });
     }
 }

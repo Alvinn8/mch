@@ -12,6 +12,7 @@ import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.repository.DimensionAccess;
 import ca.bkaw.mch.repository.RepositoryAccess;
 import ca.bkaw.mch.util.StringPath;
+import net.kyori.adventure.text.Component;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -133,14 +134,17 @@ public class HistoryView {
             ServerLevel oldLevel = oldView.getLevel();
             for (ServerPlayer player : new ArrayList<>(oldLevel.players())) {
                 ServerLevel newLevel = newView.getLevel();
-                player.teleportTo(
-                    newLevel, player.getX(), player.getY(), player.getZ(),
-                    player.getYRot(), player.getXRot()
-                );
-                if (!player.getAbilities().flying && player.getAbilities().mayfly) {
-                    player.getAbilities().flying = true;
-                    player.onUpdateAbilities();
-                }
+                player.sendMessage(Component.text("Preloading, please wait."));
+                newView.preloadArea(player.getX(), player.getZ()).thenRun(() -> this.server.executeIfPossible(() -> {
+                    player.teleportTo(
+                        newLevel, player.getX(), player.getY(), player.getZ(),
+                        player.getYRot(), player.getXRot()
+                    );
+                    if (!player.getAbilities().flying && player.getAbilities().mayfly) {
+                        player.getAbilities().flying = true;
+                        player.onUpdateAbilities();
+                    }
+                }));
             }
 
             // Delete old dimension view

@@ -219,7 +219,12 @@ public class HistoryCommand {
             float angle = (float) spawn.w();
             ServerLevel level = dimensionView.getLevel();
 
-            player.teleportTo(level, x, y, z, angle, 0);
+            // Preload the spawn area off the main thread to avoid crashing the server.
+            // Then teleport.
+            player.sendMessage(Component.text("Preloading, please wait..."));
+            dimensionView.preloadArea(x, z).thenRun(() -> server.executeIfPossible(() ->
+                player.teleportTo(level, x, y, z, angle, 0)
+            ));
         }
 
         return 1;
