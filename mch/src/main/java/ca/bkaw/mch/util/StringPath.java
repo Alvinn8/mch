@@ -38,11 +38,30 @@ public class StringPath {
         return this.path;
     }
 
+    /**
+     * Resolve a path. If the relative path starts with a slash, the new path will
+     * become the relative path.
+     *
+     * @param relative The relative path.
+     * @return The resolved path.
+     */
     public StringPath resolve(String relative) {
         if (relative.startsWith("/")) {
             return new StringPath(relative);
         }
         return new StringPath(Util.trailingSlash(this.path) + relative);
+    }
+
+    /**
+     * Resolve a path, but force the resolution to be relative to the current path. In
+     * other words, this method can never lead to the path "escaping" out to parent
+     * directories of the current path.
+     *
+     * @param relative The relative path.
+     * @return The resolved path.
+     */
+    public StringPath resolveRelative(String relative) {
+        return new StringPath(Util.trailingSlash(this.path) + Util.noLeadingSlash(relative));
     }
 
     public String getFileName() {
@@ -62,7 +81,7 @@ public class StringPath {
         if (index < 0 || index >= parts.length) {
             throw new IllegalArgumentException(index + " is out of bounds.");
         }
-        return parts[0];
+        return parts[index];
     }
 
     public int getNameCount() {

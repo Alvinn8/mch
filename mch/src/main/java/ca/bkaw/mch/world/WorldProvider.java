@@ -1,65 +1,64 @@
 package ca.bkaw.mch.world;
 
-import ca.bkaw.mch.object.Reference20;
-import ca.bkaw.mch.object.blob.Blob;
-import ca.bkaw.mch.object.tree.Tree;
-import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
+import ca.bkaw.mch.util.StringPath;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
- * An object that provides mch with information about a world.
+ * An object that provides mch with file access to world.
  * <p>
  * When this object is created through a {@link WorldAccessor} it can be considered
  * as a session, and once access to the world is no longer necessary the world
  * provider object should be closed.
  */
 public interface WorldProvider extends AutoCloseable {
-    /**
-     * Get the dimensions that this world has.
-     *
-     * @return The list of dimension keys.
-     * @throws IOException If an I/O error occurs.
-     */
-    List<String> getDimensions() throws IOException;
 
     /**
-     * Get the region files of a dimension.
+     * List the files in a directory.
+     * <p>
+     * Some implementations are able to supply file metadata (such as file size and last
+     * modification time) while listing, while other implementation will have metadata be
+     * {@code null}.
      *
-     * @param dimension The dimension key.
-     * @return The list of {@link RegionFileInfo information about region files}.
+     * @param path The path of the directory to list.
+     * @return The list of files.
      * @throws IOException If an I/O error occurs.
      */
-    List<RegionFileInfo> getRegionFiles(String dimension) throws IOException;
+    List<FileInfo> list(StringPath path) throws IOException;
 
     /**
-     * Open a region file in a dimension for reading.
+     * Get metadata about a file or folder, if it exists. If there is no file or folder
+     * at the path, {@code null} is returned.
      *
-     * @param dimension The dimension key.
-     * @param regionFileName The file name of the region file.
-     * @param estimatedSize The estimated file size of the region file.
-     * @return The reader.
+     * @param path The path to stat.
+     * @return The metadata for the file or folder, or {@code null}.
      * @throws IOException If an I/O error occurs.
      */
-    RandomAccessReader openRegionFile(String dimension, String regionFileName, long estimatedSize) throws IOException;
+    @Nullable
+    FileInfo.Metadata stat(StringPath path) throws IOException;
 
     /**
-     * Track a directory of files by creating {@link Tree} and {@link Blob} objects to
-     * represent the current version of the directory.
+     * Open a file for random access.
      *
-     * @param repository The repository to save to.
-     * @param dimension The dimension to track.
-     * @param predicate A predicate that controls which files to include.
-     * @param currentTree The current state of the tree where blobs can be reused if
-     *                    they have not changed.
-     * @return The reference to the created {@link Tree} object.
+     * @param path The path to the file
+     * @param estimatedSize The estimated size of the file. Used for performance reasons.
+     * @return A {@link RandomAccessReader} with the file contents.
      * @throws IOException If an I/O error occurs.
      */
-    Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException;
+    RandomAccessReader openFile(StringPath path, long estimatedSize) throws IOException;
+
+    /**
+     * Read a file fully.
+     *
+     * @param path The path to the file.
+     * @param estimatedSize The estimated size of the file. Used for performance reasons.
+     * @return The file content.
+     * @throws IOException If an I/O error occurs.
+     */
+    byte[] readFile(StringPath path, long estimatedSize) throws IOException;
 
     /**
      * Close the world provider. Depending on the implementation, this method will
