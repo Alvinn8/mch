@@ -9,18 +9,19 @@ import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.StringPath;
 import ca.bkaw.mch.util.Util;
-import ca.bkaw.mch.world.sftp.OutputStreamFileDest;
-import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+/**
+ * A class used to read high-level information from a world. Files and directories
+ * are gotten from a {@link WorldProvider}.
+ */
 public class WorldReader {
     private final WorldProvider provider;
 
@@ -29,7 +30,7 @@ public class WorldReader {
     }
 
     @NotNull
-    private FileInfo.Metadata metadata(FileInfo fileInfo) {
+    private FileInfo.Metadata metadata(FileInfo fileInfo) throws IOException {
         if (fileInfo.metadata() != null) {
             return fileInfo.metadata();
         }
@@ -42,22 +43,35 @@ public class WorldReader {
         );
     }
 
-    public List<String> getDimensions() {
-        List<FileInfo> directories = this.provider.list(StringPath.root());
+    public List<String> getDimensions() throws IOException {
+        StringPath rootPath = StringPath.root();
+        List<FileInfo> directories = this.provider.list(rootPath);
 
         List<String> dimensions = new ArrayList<>(3);
         for (FileInfo fileInfo : directories) {
-            String dimension = switch (fileInfo.name()) {
-                case "region" -> Dimension.OVERWORLD;
-                case Util.NETHER_FOLDER -> Dimension.NETHER;
-                case Util.THE_END_FOLDER -> Dimension.THE_END;
-                default -> null;
-            };
-            if (dimension != null && metadata(fileInfo).isDirectory()) {
-                dimensions.add(dimension);
+            switch (fileInfo.name()) {
+                case "region" -> dimensions.add(Dimension.OVERWORLD);
+                case Util.NETHER_FOLDER -> dimensions.add(Dimension.NETHER);
+                case Util.THE_END_FOLDER -> dimensions.add(Dimension.THE_END);
+                case "dimensions" -> {
+                    StringPath dimensionsPath = rootPath.resolve("dimensions");
+                    for (FileInfo namespaceDirectory : this.provider.list(dimensionsPath)) {
+                        if (!metadata(namespaceDirectory).isDirectory()) {
+                            continue;
+                        }
+                        String namespace = namespaceDirectory.name();
+                        for (FileInfo keyDirectory : this.provider.list(dimensionsPath.resolve(namespace))) {
+                            if (!metadata(keyDirectory).isDirectory()) {
+                                continue;
+                            }
+                            String key = keyDirectory.name();
+                            String dimensionKey = namespace + ':' + key;
+                            dimensions.add(dimensionKey);
+                        }
+                    }
+                }
             }
         }
-        // TODO custom dimensions
         return dimensions;
     }
 

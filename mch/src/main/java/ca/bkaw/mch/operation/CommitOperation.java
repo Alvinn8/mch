@@ -21,6 +21,7 @@ import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.world.RegionFileInfo;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.WorldProvider;
+import ca.bkaw.mch.world.WorldReader;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -48,6 +49,7 @@ public class CommitOperation {
             // Loop trough each world that this mch repository is tracking.
             WorldAccessor worldAccessor = trackedWorld.getWorldAccessor();
             try (WorldProvider worldProvider = worldAccessor.access(repository)) {
+                WorldReader worldReader = new WorldReader(worldProvider);
 
                 // The world object for this version of the tracked world.
                 World world = new World();
@@ -56,7 +58,7 @@ public class CommitOperation {
                     ? currentWorldContainer.getWorld(trackedWorld.getId())
                     : null);
 
-                for (String dimensionKey : worldProvider.getDimensions()) {
+                for (String dimensionKey : worldReader.getDimensions()) {
 
                     System.out.println("Processing dimension " + dimensionKey);
 
@@ -69,7 +71,7 @@ public class CommitOperation {
                         : null);
 
                     // Track miscellaneous files
-                    Reference20<Tree> treeReference = worldProvider.trackDirectoryTree(
+                    Reference20<Tree> treeReference = worldReader.trackDirectoryTree(
                         dimensionKey,
                         repository,
                         str -> switch (str) {
@@ -86,7 +88,7 @@ public class CommitOperation {
                     int unmodifiedRegionFiles = 0;
                     int emptyRegionFiles = 0;
 
-                    for (RegionFileInfo regionFileInfo : worldProvider.getRegionFiles(dimensionKey)) {
+                    for (RegionFileInfo regionFileInfo : worldReader.getRegionFiles(dimensionKey)) {
                         if (regionFileInfo.fileSize() == 0) {
                             // I am not sure how or why these empty region files are created, but since they
                             // are 0 bytes they do not contain valid data. Skip them to avoid crashing.
@@ -128,7 +130,7 @@ public class CommitOperation {
 
                         int[] chunkVersionNumbers = new int[1024];
                         try (
-                            RandomAccessReader reader = worldProvider.openRegionFile(dimensionKey, regionFileInfo.fileName(), regionFileInfo.fileSize());
+                            RandomAccessReader reader = worldReader.openRegionFile(dimensionKey, regionFileInfo.fileName(), regionFileInfo.fileSize());
                             McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
                         ) {
                             RegionStorageVisitor.visit(

@@ -4,6 +4,8 @@ import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.Util;
 import ca.bkaw.mch.world.RegionFileInfo;
+import ca.bkaw.mch.world.WorldProvider;
+import ca.bkaw.mch.world.WorldReader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockftpserver.fake.FakeFtpServer;
@@ -19,9 +21,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class FtpWorldProviderTest {
+public class WorldReaderFtpTest {
     static FakeFtpServer ftpServer;
-    static FtpWorldProvider worldProvider;
+    static WorldReader worldReader;
 
     @BeforeAll
     static void setup() throws IOException {
@@ -42,20 +44,21 @@ public class FtpWorldProviderTest {
         ftpServer.setServerControlPort(0); // any port
         ftpServer.start();
 
-        worldProvider = new FtpWorldProvider(
+        WorldProvider worldProvider = new FtpWorldProvider(
             new FtpProfile(
                 "localhost", ftpServer.getServerControlPort(), false,
                 "username", "password"
             ),
             "world"
         );
+        worldReader = new WorldReader(worldProvider);
     }
 
     @Test
     void dimensions() throws IOException {
         assertEquals(
             Set.of(Dimension.OVERWORLD, Dimension.NETHER),
-            Set.copyOf(worldProvider.getDimensions())
+            Set.copyOf(worldReader.getDimensions())
         );
     }
 
@@ -63,7 +66,7 @@ public class FtpWorldProviderTest {
     void regionFiles() throws IOException {
         assertEquals(
             List.of("r.0.0.mca", "r.1.0.mca"),
-            worldProvider.getRegionFiles(Dimension.OVERWORLD)
+            worldReader.getRegionFiles(Dimension.OVERWORLD)
                 .stream()
                 .map(RegionFileInfo::fileName)
                 .sorted()
@@ -73,7 +76,7 @@ public class FtpWorldProviderTest {
 
     @Test
     void readRegionFile() throws IOException {
-        try (RandomAccessReader reader = worldProvider.openRegionFile(Dimension.OVERWORLD, "r.0.0.mca", 32)) {
+        try (RandomAccessReader reader = worldReader.openRegionFile(Dimension.OVERWORLD, "r.0.0.mca", 32)) {
             byte b = reader.readByte();
             assertEquals('a', b);
         }
