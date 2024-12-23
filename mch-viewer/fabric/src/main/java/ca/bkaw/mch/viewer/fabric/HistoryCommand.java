@@ -414,6 +414,7 @@ public class HistoryCommand {
 
         historyView.setCommit(new CommitInfo(commit, ref.getSha1()));
 
+        // TODO do this after the player has been teleported (after preloading)
         // We need to recreate the CommandSourceStack to be able to execute /mch log again.
         // Calling log(ctx) will not work since this CommandContext still has the old level
         // that no longer is tied to the HistoryView instance.

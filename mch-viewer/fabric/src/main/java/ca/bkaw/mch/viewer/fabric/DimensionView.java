@@ -59,17 +59,15 @@ public final class DimensionView {
     }
 
     public CompletableFuture<Void> preloadArea(double blockX, double blockZ) {
-        if (true) {
-            return CompletableFuture.completedFuture(null);
-        }
         return CompletableFuture.runAsync(() -> {
             int middleRegionX = (int) blockX >> 9;
             int middleRegionZ = (int) blockZ >> 9;
 
             ServerLevel world = this.worldHandle.asWorld();
-            Path dimensionPath = ((MinecraftServerAccess) world).getSession().getDimensionPath(world.dimension());
-            Path regionFolder = this.wrapPath(dimensionPath.resolve("region"));
-            Path entitiesFolder = this.wrapPath(dimensionPath.resolve("entities"));
+            // The mixin will intercept this call and ensure that the path is wrapped by mch-fs.
+            Path dimensionPath = ((MinecraftServerAccess) world.getServer()).getSession().getDimensionPath(world.dimension());
+            Path regionFolder = dimensionPath.resolve("region");
+            Path entitiesFolder = dimensionPath.resolve("entities");
 
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
@@ -77,13 +75,16 @@ public final class DimensionView {
                     int regionZ = middleRegionZ + dz;
 
                     // Access the file to make sure it is restored.
-                    String fileName = regionX + "." + regionZ + ".mca";
+                    String fileName = "r." + regionX + "." + regionZ + ".mca";
                     Path regionPath = regionFolder.resolve(fileName);
                     Path entitiesPath = entitiesFolder.resolve(fileName);
                     Files.exists(regionPath);
                     Files.exists(entitiesPath);
                 }
             }
+        }).exceptionally(e -> {
+            MchViewerFabric.LOGGER.error("Failed to preload chunks", e);
+            return null;
         });
     }
 }

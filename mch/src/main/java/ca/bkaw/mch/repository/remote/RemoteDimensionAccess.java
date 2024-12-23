@@ -69,7 +69,7 @@ public class RemoteDimensionAccess implements DimensionAccess {
 
     @Override
     public @NotNull List<String> list(StringPath path) throws IOException {
-        try (DataInputStream stream = this.sendRequest("v1/restoreFile", path)) {
+        try (DataInputStream stream = this.sendRequest("v1/list", path)) {
             JSONObject json = new JSONObject(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
             JSONArray array = json.getJSONArray("value");
             List<String> list = new ArrayList<>(array.length());

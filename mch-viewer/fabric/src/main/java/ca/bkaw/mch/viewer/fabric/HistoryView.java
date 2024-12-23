@@ -147,6 +147,7 @@ public class HistoryView {
                 }));
             }
 
+            // TODO delete AFTER the player(s) have been teleported
             // Delete old dimension view
             this.mod.unregisterDimensionView(oldLevel.dimension(), oldView);
             oldView.getWorldHandle().delete();

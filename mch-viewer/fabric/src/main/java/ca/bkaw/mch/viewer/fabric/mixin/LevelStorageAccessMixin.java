@@ -17,7 +17,6 @@ public class LevelStorageAccessMixin {
     public Path injected(Path original, ResourceKey<Level> levelKey) {
         MchViewerFabric mchViewer = MchViewerFabric.getInstance();
         DimensionView dimensionView = mchViewer.getDimensionView(levelKey);
-        System.out.println(levelKey + ": " + dimensionView);
         if (dimensionView == null) {
             return original;
         }
