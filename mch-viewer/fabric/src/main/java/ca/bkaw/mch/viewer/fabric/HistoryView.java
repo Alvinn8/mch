@@ -13,6 +13,7 @@ import ca.bkaw.mch.repository.DimensionAccess;
 import ca.bkaw.mch.repository.RepositoryAccess;
 import ca.bkaw.mch.util.StringPath;
 import net.kyori.adventure.text.Component;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -134,8 +135,7 @@ public class HistoryView {
             ServerLevel oldLevel = oldView.getLevel();
             for (ServerPlayer player : new ArrayList<>(oldLevel.players())) {
                 ServerLevel newLevel = newView.getLevel();
-                player.sendMessage(Component.text("Preloading, please wait."));
-                newView.preloadArea(player.getX(), player.getZ()).thenRun(() -> this.server.executeIfPossible(() -> {
+                newView.preloadArea(player.getX(), player.getZ(), player).thenRun(() -> this.server.executeIfPossible(() -> {
                     player.teleportTo(
                         newLevel, player.getX(), player.getY(), player.getZ(),
                         player.getYRot(), player.getXRot()
@@ -144,14 +144,31 @@ public class HistoryView {
                         player.getAbilities().flying = true;
                         player.onUpdateAbilities();
                     }
+                    this.onStartViewing(player);
+
+                    if (oldLevel.players().isEmpty()) {
+                        // Delete old dimension view
+                        this.mod.unregisterDimensionView(oldLevel.dimension(), oldView);
+                        oldView.getWorldHandle().delete();
+                    }
                 }));
             }
-
-            // TODO delete AFTER the player(s) have been teleported
-            // Delete old dimension view
-            this.mod.unregisterDimensionView(oldLevel.dimension(), oldView);
-            oldView.getWorldHandle().delete();
         }
+    }
+
+    /**
+     * This method is called, and should be called, when the player has teleported into
+     * a dimensions where history is being viewed.
+     *
+     * @param player The player that entered.
+     */
+    public void onStartViewing(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        if (server == null) {
+            return;
+        }
+        Commands commands = server.getCommands();
+        commands.performPrefixedCommand(player.createCommandSourceStack(), "history log");
     }
 
     /**

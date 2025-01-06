@@ -2,12 +2,20 @@ package ca.bkaw.mch.viewer.fabric;
 
 import ca.bkaw.mch.fs.MchFileSystem;
 import ca.bkaw.mch.fs.MchPath;
+import net.kyori.adventure.text.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class DimensionView {
@@ -58,10 +66,13 @@ public final class DimensionView {
         return original;
     }
 
-    public CompletableFuture<Void> preloadArea(double blockX, double blockZ) {
+    public CompletableFuture<Void> preloadArea(double blockX, double blockZ, @Nullable ServerPlayer processTracker) {
+        if (processTracker != null) {
+            processTracker.sendMessage(Component.text("Preloading, please wait..."));
+        }
         return CompletableFuture.runAsync(() -> {
-            int middleRegionX = (int) blockX >> 9;
-            int middleRegionZ = (int) blockZ >> 9;
+            Set<String> regionFileNames = this.getPreloadRegionFiles(blockX, blockZ);
+            System.out.println("Preloading " + regionFileNames.size() + " region files: " + regionFileNames);
 
             ServerLevel world = this.worldHandle.asWorld();
             // The mixin will intercept this call and ensure that the path is wrapped by mch-fs.
@@ -69,22 +80,56 @@ public final class DimensionView {
             Path regionFolder = dimensionPath.resolve("region");
             Path entitiesFolder = dimensionPath.resolve("entities");
 
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    int regionX = middleRegionX + dx;
-                    int regionZ = middleRegionZ + dz;
-
-                    // Access the file to make sure it is restored.
-                    String fileName = "r." + regionX + "." + regionZ + ".mca";
-                    Path regionPath = regionFolder.resolve(fileName);
-                    Path entitiesPath = entitiesFolder.resolve(fileName);
-                    Files.exists(regionPath);
-                    Files.exists(entitiesPath);
+            int completed = 0;
+            for (String fileName : regionFileNames) {
+                Path regionPath = regionFolder.resolve(fileName);
+                Path entitiesPath = entitiesFolder.resolve(fileName);
+                Files.exists(regionPath);
+                Files.exists(entitiesPath);
+                completed++;
+                if (processTracker != null) {
+                    int percentage = (int) Math.round(100.0 * completed / regionFileNames.size());
+                    processTracker.sendMessage(Component.text("... " + percentage + "%"));
                 }
             }
         }).exceptionally(e -> {
             MchViewerFabric.LOGGER.error("Failed to preload chunks", e);
             return null;
         });
+    }
+
+    private Set<String> getPreloadRegionFiles(double blockX, double blockZ) {
+        Set<String> regionFileNames = new HashSet<>();
+
+        // We always want to preload the region file the player will stand in.
+        int middleRegionX = (int) blockX >> 9;
+        int middleRegionZ = (int) blockZ >> 9;
+        String middleFileName = "r." + middleRegionX + "." + middleRegionZ + ".mca";
+        regionFileNames.add(middleFileName);
+
+        // Preload surrounding region files if they are close enough.
+        int dist;
+        final int regionBlockSize = 32 * 16;
+
+        // Check view-distance and preload accordingly.
+        MinecraftServer server = this.worldHandle.asWorld().getServer();
+        if (server instanceof DedicatedServer dedicatedServer) {
+            // Add one chunk to have some margin
+            int blockViewDistance = dedicatedServer.getProperties().viewDistance * 16 + 16;
+            dist = Mth.clamp(blockViewDistance, 6 * 16, 16 * 16);
+        } else {
+            dist = 16 * 16;
+        }
+        System.out.println("dist = " + dist);
+
+        for (int dx = -dist; dx <= dist + regionBlockSize; dx += regionBlockSize) {
+            for (int dz = -dist; dz <= dist + regionBlockSize; dz += regionBlockSize) {
+                int regionX = (int) (blockX + dx) >> 9;
+                int regionZ = (int) (blockZ + dz) >> 9;
+                String fileName = "r." + regionX + "." + regionZ + ".mca";
+                regionFileNames.add(fileName);
+            }
+        }
+        return regionFileNames;
     }
 }

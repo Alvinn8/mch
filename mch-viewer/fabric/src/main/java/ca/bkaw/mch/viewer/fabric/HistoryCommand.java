@@ -221,10 +221,10 @@ public class HistoryCommand {
 
             // Preload the spawn area off the main thread to avoid crashing the server.
             // Then teleport.
-            player.sendMessage(Component.text("Preloading, please wait..."));
-            dimensionView.preloadArea(x, z).thenRun(() -> server.executeIfPossible(() ->
-                player.teleportTo(level, x, y, z, angle, 0)
-            ));
+            dimensionView.preloadArea(x, z, player).thenRun(() -> server.executeIfPossible(() -> {
+                player.teleportTo(level, x, y, z, angle, 0);
+                view.onStartViewing(player);
+            }));
         }
 
         return 1;
@@ -413,15 +413,6 @@ public class HistoryCommand {
         Commit commit = repositoryAccess.accessCommit(ref.getSha1());
 
         historyView.setCommit(new CommitInfo(commit, ref.getSha1()));
-
-        // TODO do this after the player has been teleported (after preloading)
-        // We need to recreate the CommandSourceStack to be able to execute /mch log again.
-        // Calling log(ctx) will not work since this CommandContext still has the old level
-        // that no longer is tied to the HistoryView instance.
-        Entity entity = ctx.getSource().getEntity();
-        if (entity != null) {
-            ctx.getSource().getServer().getCommands().performPrefixedCommand(entity.createCommandSourceStack(), "history log");
-        }
 
         return 1;
     }
