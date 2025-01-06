@@ -27,7 +27,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -453,10 +452,13 @@ public class HistoryCommand {
         Vec3 pos = source.getPosition().multiply(scale, 1, scale);
 
         ServerPlayer player = source.getPlayerOrException();
-        player.teleportTo(
-            toDimension.getLevel(), pos.x(), pos.y(), pos.z(),
-            player.getYRot(), player.getXRot()
-        );
+        toDimension.preloadArea(pos.x(), pos.z(), player).thenRun(() -> source.getServer().executeIfPossible(() -> {
+            player.teleportTo(
+                toDimension.getLevel(), pos.x(), pos.y(), pos.z(),
+                player.getYRot(), player.getXRot()
+            );
+            historyView.onStartViewing(player);
+        }));
 
         return 1;
     }
