@@ -53,6 +53,7 @@ tasks {
             include(dependency("com.github.luben:zstd-jni:.*"))
             include(dependency("commons-net:commons-net:.*"))
             include(dependency("com.hierynomus:sshj:.*"))
+            include(dependency("org.json:json:.*"))
             exclude("/mappings/*")
         }
     }
