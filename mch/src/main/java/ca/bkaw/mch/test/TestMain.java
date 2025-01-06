@@ -1,14 +1,27 @@
 package ca.bkaw.mch.test;
 
 import ca.bkaw.mch.Sha1;
+import ca.bkaw.mch.chunk.ChunkStorage;
+import ca.bkaw.mch.chunk.RegionFileChunk;
 import ca.bkaw.mch.nbt.NbtCompound;
 import ca.bkaw.mch.nbt.NbtList;
+import ca.bkaw.mch.nbt.NbtLong;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageType;
 import ca.bkaw.mch.object.ObjectStorageTypes;
+import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.StorageObject;
+import ca.bkaw.mch.object.blob.Blob;
+import ca.bkaw.mch.object.commit.Commit;
+import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.tree.Tree;
+import ca.bkaw.mch.object.world.World;
+import ca.bkaw.mch.object.worldcontainer.WorldContainer;
+import ca.bkaw.mch.region.MchRegionFile;
+import ca.bkaw.mch.region.RegionStorageVisitor;
 import ca.bkaw.mch.region.mc.McRegionFileReader;
 import ca.bkaw.mch.repository.MchRepository;
+import ca.bkaw.mch.repository.TrackedWorld;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.jetbrains.annotations.NotNull;
@@ -30,25 +43,234 @@ import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 
 public class TestMain {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        // Repair a corrupted repo where mchrv files was accidentally deleted.
+        //
+        // The idea is to use the LastUpdate tag in chunks to reconstruct which commit
+        // the specific chunk versions belong to. We can compare this time in ticks to
+        // the world's time at a specific commit by reading the Time value from the
+        // level.dat. So if we, for each commit, find the current time, then for each
+        // chunk in the broken files we get the latest possible chunk version number
+        // which has a LastUpdate as close to the world time as possible, but not above
+        // it, we should be able to reproduce the chunk version number for that commit.
+        // That is what is missing in this case, those chunk version numbers.
+        //
+        // One detail to note is the order in which files are saved by mch. The level.dat
+        // will be saved before region files, which means that chunks in region files may
+        // have a LastUpdate time that is slightly ahead of the Time in the level.dat. In
+        // this case, commits were performed every 24 hours. Commits usually took, in the
+        // worst case, slightly more than 2 hours to perform. We can therefore safely add
+        // like 4 hours to the level.dat time and use that as a safe upper limit for the
+        // time which chunks try to approach. There are cases where manual backups have
+        // been performed to the automated script crashing, so in these cases it may be
+        // less than 4 hours between commits, but it should hopefully be rare.
+
+
+        record RegionPos(int regionX, int regionZ) {};
+        List<RegionPos> missingMchRvFiles = List.of(
+            new RegionPos(-1, -4),
+            new RegionPos(-1, -5),
+            new RegionPos(0, -4),
+            new RegionPos(0, -5)
+        );
+        Path repoPath = Path.of("/Users/Alvin/Documents/mch/metacraft/metacraft-survival/mch").toAbsolutePath();
+        String outputDimensionKey = "mch_repair_repo_test";
+
+        MchRepository repo = new MchRepository(repoPath);
+        repo.readConfiguration();
+
+        TrackedWorld trackedWorld = repo.getConfiguration().getTrackedWorld(Sha1.fromString("d6cd92545d49add9a5157a6bc7647a59ea4b1c38"));
+        String dimensionKey = Dimension.OVERWORLD;
+
+        Files.createDirectories(repoPath.resolve("world").resolve(trackedWorld.getId().asHex()).resolve("dimensions").resolve(outputDimensionKey).resolve("region"));
+
+        // First check that the mchrv file doesn't exist. We don't want to accidentally
+        // overwrite any valid files.
+        for (RegionPos regionPos : missingMchRvFiles) {
+            boolean existsInOverworld;
+            try {
+                MchRegionFile.read(repo, trackedWorld, dimensionKey, regionPos.regionX, regionPos.regionZ, 1);
+                // We didn't throw yet? It must exist.
+                existsInOverworld = true;
+            } catch (NoSuchFileException e) {
+                existsInOverworld = false;
+            }
+            boolean existsInOutputDimension;
+            try {
+                MchRegionFile.read(repo, trackedWorld, outputDimensionKey, regionPos.regionX, regionPos.regionZ, 1);
+                // We didn't throw yet? It must exist.
+                existsInOutputDimension = true;
+            } catch (NoSuchFileException e) {
+                existsInOutputDimension = false;
+            }
+            if (existsInOverworld || existsInOutputDimension) {
+                throw new RuntimeException("The mchrv file already exists! r." + regionPos.regionX + "." + regionPos.regionZ + ".mchrv.zst. existsInOverworld = " + existsInOverworld + ", existsInOutputDimension = " + existsInOutputDimension);
+            }
+        }
+
+        List<Commit> commits = new ArrayList<>();
+
+        Reference20<Commit> commitRef = repo.getHeadCommit();
+        while (commitRef != null) {
+            Commit commit = commitRef.resolve(repo);
+            commits.add(commit);
+            commitRef = commit.getPreviousCommit();
+        }
+
+        List<Commit> commitsReverse = new ArrayList<>(commits);
+        Collections.reverse(commitsReverse);
+
+        for (RegionPos regionPos : missingMchRvFiles) {
+            System.out.println();
+            System.out.println("Procession region file " + regionPos);
+            System.out.println();
+            int regionX = regionPos.regionX;
+            int regionZ = regionPos.regionZ;
+
+            record ChunkInfo(int chunkVersionNumber, long lastUpdate) {}
+
+            System.out.println("Preparing chunk info");
+            List<ChunkInfo>[] chunkInfoListArray = new List[1024]; // Note that this is an array of lists.
+
+            RegionStorageVisitor.visitReadOnly(repo, trackedWorld, dimensionKey, regionX, regionZ, (chunk) -> {
+                ChunkStorage chunkStorage = null;
+                // Make RegionStorageVisitor.Chunk#chunkStorage public to compile
+                // chunkStorage = chunk.chunkStorage;
+
+                List<Integer> availableChunkVersionNumbers = null;
+                // Make ChunkStorage#chunkVersions public to compile
+                // availableChunkVersionNumbers = chunkStorage.chunkVersions.keySet().stream().sorted(Integer::compareTo).toList();
+
+                List<ChunkInfo> chunkInfoList = new ArrayList<>();
+                for (int chunkVersionNumber : availableChunkVersionNumbers) {
+                    RegionFileChunk chunkData = chunk.restore(chunkVersionNumber);
+                    NbtCompound chunkNbt = chunkData.nbt();
+                    long lastUpdate = ((NbtLong) chunkNbt.get("LastUpdate")).getValue();
+                    chunkInfoList.add(new ChunkInfo(chunkVersionNumber, lastUpdate));
+                }
+                chunkInfoListArray[chunk.getIndex()] = chunkInfoList;
+            });
+
+            // Loop from first to the newest commit.
+            for (Commit commit : commitsReverse) {
+                System.out.println("Processing commit " + new Date(commit.getTime()));
+                WorldContainer worldContainer = commit.getWorldContainer().resolve(repo);
+                World world = worldContainer.getWorld(trackedWorld.getId()).resolve(repo);
+                Dimension dimension = world.getDimension(dimensionKey).resolve(repo);
+
+                Tree miscFiles = dimension.getMiscellaneousFiles().resolve(repo);
+                Blob levelDatBlob = miscFiles.getFiles().get("level.dat").reference().resolve(repo);
+                byte[] levelDatBytes = levelDatBlob.getBytes();
+                NbtCompound levelDatRoot = NbtTag.readCompound(new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(levelDatBytes))));
+                NbtCompound levelDat = (NbtCompound) levelDatRoot.get("Data");
+
+                // The current world time for this commit.
+                final long paddingTime = 4 * 60 * 60 * 20; // Add 4 hours due to reasons above.
+                long rawWorldTimeTicks = ((NbtLong) levelDat.get("Time")).getValue();
+                long worldTimeTicks = rawWorldTimeTicks;
+
+                System.out.println("    Commit has raw time: " + rawWorldTimeTicks);
+                System.out.println("    Commit has time: " + worldTimeTicks);
+
+                Dimension.RegionFileReference regionFileRef = dimension.getRegionFile(regionX, regionZ);
+                int regionVersionNumber = regionFileRef.getVersionNumber();
+                System.out.println("    regionVersionNumber = " + regionVersionNumber);
+                System.out.println("    //<editor-fold desc=\"Chunks\">");
+
+                int[] chunkVersionNumbers = new int[1024];
+
+                for (int chunkIndex = 0; chunkIndex < 1024; chunkIndex++) {
+                    List<ChunkInfo> chunkInfoList = chunkInfoListArray[chunkIndex];
+                    ChunkInfo bestMatch = null;
+                    long bestMatchDeltaTime = Long.MAX_VALUE;
+                    ChunkInfo bestAlmostMatch = null;
+                    long bestAlmostMatchDeltaTime = Long.MIN_VALUE;
+                    for (ChunkInfo chunkInfo : chunkInfoList) {
+                        long deltaTime = worldTimeTicks - chunkInfo.lastUpdate;
+                        if (deltaTime + paddingTime >= 0 && deltaTime < bestMatchDeltaTime) {
+                            bestMatchDeltaTime = deltaTime;
+                            bestMatch = chunkInfo;
+                        }
+                        // if (deltaTime < 0 && deltaTime > bestAlmostMatchDeltaTime) {
+                        //     bestAlmostMatchDeltaTime = deltaTime;
+                        //     bestAlmostMatch = chunkInfo;
+                        // }
+                    }
+                    if (bestMatch != null) {
+                        System.out.println("\tc" + chunkIndex + " bm " + bestMatch.chunkVersionNumber + " dT " + bestMatchDeltaTime + " = " + (bestMatchDeltaTime < 0 ? "(-) " : "") + formatTicks((int) Math.abs(bestMatchDeltaTime)));
+                        if (bestAlmostMatch != null && -bestAlmostMatchDeltaTime < 60 * 60 * 20) {
+                            System.out.println("\tRunner-upper dT " + bestAlmostMatchDeltaTime + " = (-) " + formatTicks((int) -bestAlmostMatchDeltaTime));
+                        }
+                        chunkVersionNumbers[chunkIndex] = bestMatch.chunkVersionNumber;
+                    } else {
+                        System.out.println("\tc" + chunkIndex + " found no match");
+                        chunkVersionNumbers[chunkIndex] = 0; // Chunk doesn't exist.
+                    }
+                }
+                System.out.println("    //</editor-fold>");
+
+                // Write to a custom dimension to avoid writing data to the live repo and
+                // accidentally breaking stuff.
+                System.out.println("Writing region file r." + regionX + "." + regionZ + " to custom output dimension.");
+                int generatedRegionVersionNumber = MchRegionFile.store(repo, trackedWorld, outputDimensionKey, regionX, regionZ, chunkVersionNumbers);
+                if (regionVersionNumber != generatedRegionVersionNumber) {
+                    System.out.println("Region version numbers did not align. Expected: " + regionVersionNumber + " but generated " + generatedRegionVersionNumber);
+                }
+                while (generatedRegionVersionNumber < regionVersionNumber) {
+                    System.out.println("Force storing.");
+                    // To compile, create this method and make sure it always generates a new version number.
+                    // generatedRegionVersionNumber = MchRegionFile.storeForceNewVersionNumber(repo, trackedWorld, outputDimensionKey, regionX, regionZ, chunkVersionNumbers);
+                    generatedRegionVersionNumber++; // temp, remove if uncomment above
+                    System.out.println("Force stored as version number " + generatedRegionVersionNumber);
+                }
+                if (generatedRegionVersionNumber > regionVersionNumber) {
+                    System.out.println("FAILURE");
+                }
+            }
+        }
+    }
+
+    private static String formatTicks(int ticks) {
+        int seconds = ticks / 20;
+        if (seconds <= 60) {
+            return seconds + " seconds, " + (ticks % 20) + " ticks";
+        }
+        int minutes = seconds / 60;
+        if (minutes <= 60) {
+            return minutes + " minutes, " + (seconds % 60) + " seconds, " + (ticks % 20) + " ticks";
+        }
+        int hours = minutes / 60;
+        if (hours <= 24) {
+            return hours + " hours, " + (minutes % 60) + " minutes, " + (seconds % 60) + " seconds, " + (ticks % 20) + " ticks";
+        }
+        int days = hours / 24;
+        return days + " days, " + (hours % 24) + " hours";
+    }
+
+    public static void main15(String[] args) {
         List<Integer> test = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5, 6));
         int index = test.indexOf(8);
 
