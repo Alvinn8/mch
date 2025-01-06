@@ -160,12 +160,12 @@ public class MchPath implements Path {
     @Override
     public File toFile() {
         // TODO possibly unsafe.
-        System.out.println("Possible unsafe toFile call.");
-        Thread.dumpStack();
+        // System.out.println("Possible unsafe toFile call.");
+        // Thread.dumpStack();
         // Known usages of File in game code:
         // - PlayerDataStorage (can quite easily be mixin'd)
         // - OldUsersConverter (can probably ignore)
-        // - DimensionDataStorage
+        // - DimensionDataStorage (via ServerChunkCache)
         // - Server icon (MinecraftServer)
         return this.path.toFile();
     }

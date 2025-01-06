@@ -38,7 +38,7 @@ public class RemoteDimensionAccess implements DimensionAccess {
         String urlStr = Util.trailingSlash(this.baseUrl.toString()) + Util.noLeadingSlash(endpoint);
         URL url = URI.create(urlStr).toURL();
 
-        System.out.println("sending to " + url);
+        // System.out.println("sending to " + url);
         JSONObject body = new JSONObject();
         body.put("commit", this.commitSha1.asHex());
         body.put("world", this.worldSha1.asHex());

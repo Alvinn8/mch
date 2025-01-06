@@ -33,7 +33,7 @@ public class RemoteRepositoryAccess implements RepositoryAccess {
         String urlStr = Util.trailingSlash(this.baseUrl.toString()) + Util.noLeadingSlash(endpoint);
         URL url = URI.create(urlStr).toURL();
 
-        System.out.println("sending to " + url);
+        // System.out.println("sending to " + url);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Authorization", this.authorization);
@@ -48,7 +48,7 @@ public class RemoteRepositoryAccess implements RepositoryAccess {
         String urlStr = Util.trailingSlash(this.baseUrl.toString()) + Util.noLeadingSlash(endpoint);
         URL url = URI.create(urlStr).toURL();
 
-        System.out.println("sending to " + url);
+        // System.out.println("sending to " + url);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Authorization", this.authorization);

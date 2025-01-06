@@ -75,12 +75,11 @@ public class MchFileSystem extends FileSystem {
             return;
         }
         // TODO folders??
-        System.out.println("DEBUG Restoring " + mchPath);
+        // System.out.println("DEBUG Restoring " + mchPath);
         Path relative = this.root.relativize(mchPath.path.toAbsolutePath());
         Files.createDirectories(mchPath.path.getParent());
         try (InputStream stream = this.dimensionAccess.restoreFile(StringPath.of(relative.toString()))) {
             if (stream != null) {
-                System.out.println("Writing stream to " + mchPath.path);
                 Files.copy(stream, mchPath.path, StandardCopyOption.REPLACE_EXISTING);
             }
         }
