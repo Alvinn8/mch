@@ -10,12 +10,24 @@ import picocli.CommandLine;
 import picocli.CommandLine.ExitCode;
 import picocli.CommandLine.IFactory;
 
+import javax.inject.Qualifier;
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class GuiceFactory implements IFactory {
-    private final Injector injector = Guice.createInjector(new DemoModule());
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface WorkingDir {}
+
+    private final Injector injector;
+
+    public GuiceFactory(Path workingDir) {
+        this.injector = Guice.createInjector(new DemoModule(workingDir));
+    }
+
     @Override
     public <K> K create(Class<K> cls) throws Exception {
         try {
@@ -26,9 +38,21 @@ public class GuiceFactory implements IFactory {
     }
 
     static class DemoModule extends AbstractModule {
+        private final Path workingDir;
+
+        DemoModule(Path workingDir) {
+            this.workingDir = workingDir;
+        }
+
+        @Provides
+        @WorkingDir
+        private Path getWorkingDir() {
+            return this.workingDir;
+        }
+
         @Provides
         private MchRepository findRepository() {
-            MchRepository mchRepository = this.tryFindRepositoryInPath(Path.of(".").toAbsolutePath());
+            MchRepository mchRepository = this.tryFindRepositoryInPath(this.workingDir.toAbsolutePath());
             if (mchRepository == null) {
                 // This should probably be an exception that propagates up and is printed nicely.
                 // For now, we print and system.exit.

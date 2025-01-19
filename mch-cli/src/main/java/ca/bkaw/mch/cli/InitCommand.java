@@ -1,6 +1,8 @@
 package ca.bkaw.mch.cli;
 
+import ca.bkaw.mch.cli.GuiceFactory.WorkingDir;
 import ca.bkaw.mch.repository.MchRepository;
+import com.google.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.ExitCode;
 
@@ -11,9 +13,13 @@ import java.util.concurrent.Callable;
 
 @Command(name = "init")
 public class InitCommand implements Callable<Integer> {
+    @Inject
+    @WorkingDir
+    Path workingDir;
+
     @Override
     public Integer call() {
-        Path mchPath = Path.of("mch");
+        Path mchPath = this.workingDir.resolve("mch");
         if (Files.exists(mchPath)) {
             System.err.println("There is already an mch repository in this folder.");
             return ExitCode.USAGE;

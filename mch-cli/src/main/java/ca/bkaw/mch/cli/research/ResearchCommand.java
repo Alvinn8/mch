@@ -2,6 +2,7 @@ package ca.bkaw.mch.cli.research;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.chunk.RegionFileChunk;
+import ca.bkaw.mch.cli.GuiceFactory.WorkingDir;
 import ca.bkaw.mch.nbt.NbtLong;
 import ca.bkaw.mch.nbt.NbtTag;
 import ca.bkaw.mch.object.ObjectStorageTypes;
@@ -30,13 +31,17 @@ public class ResearchCommand {
     @Inject
     MchRepository repository;
 
+    @Inject
+    @WorkingDir
+    private Path workingDir;
+
     @Command(name = "inhabitedtime-csv")
     public void inhabitedTimeCsv(
         @Parameters(index = "0")
         String commitHash
     ) throws IOException {
         // Quick and dirty (and ugly) code that gets the job done :p
-        Path outputFilePath = Path.of("mch-research/InhabitedTime.csv");
+        Path outputFilePath = workingDir.resolve("mch-research/InhabitedTime.csv");
         Files.createDirectories(outputFilePath.getParent());
         PrintWriter output = new PrintWriter(Files.newBufferedWriter(outputFilePath));
 

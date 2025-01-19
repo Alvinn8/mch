@@ -8,6 +8,8 @@ import ca.bkaw.mch.cli.world.WorldCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
+import java.nio.file.Path;
+
 @Command(name = "mch", subcommands = {
     CommitCommand.class,
     CatCommand.class,
@@ -22,9 +24,13 @@ import picocli.CommandLine.Command;
 })
 public class MchCli {
     public static void main(String[] args) {
-        int exitCode = new CommandLine(MchCli.class, new GuiceFactory())
+        int exitCode = run(Path.of("."), args);
+        System.exit(exitCode);
+    }
+
+    public static int run(Path workingDir, String[] args) {
+        return new CommandLine(MchCli.class, new GuiceFactory(workingDir))
             .setTrimQuotes(false)
             .execute(args);
-        System.exit(exitCode);
     }
 }

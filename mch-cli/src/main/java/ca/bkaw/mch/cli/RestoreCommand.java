@@ -2,6 +2,7 @@ package ca.bkaw.mch.cli;
 
 import ca.bkaw.mch.Sha1;
 import ca.bkaw.mch.chunk.RegionFileChunk;
+import ca.bkaw.mch.cli.GuiceFactory.WorkingDir;
 import ca.bkaw.mch.object.ObjectNotFoundException;
 import ca.bkaw.mch.object.ObjectStorageTypes;
 import ca.bkaw.mch.object.Reference20;
@@ -33,6 +34,10 @@ import java.util.concurrent.Callable;
 public class RestoreCommand implements Callable<Integer> {
     @Inject
     MchRepository repository;
+
+    @Inject
+    @WorkingDir
+    Path workingDir;
 
     @Parameters(index = "0")
     String commitHash;
@@ -111,7 +116,7 @@ public class RestoreCommand implements Callable<Integer> {
             }
         }
 
-        System.out.println("Restored commit " + commitHash + " to " + Path.of(".").toAbsolutePath().relativize(path.toAbsolutePath()));
+        System.out.println("Restored commit " + commitHash + " to " + this.workingDir.toAbsolutePath().relativize(path.toAbsolutePath()));
 
         return ExitCode.OK;
     }
