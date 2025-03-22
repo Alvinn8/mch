@@ -122,7 +122,7 @@ public class WorldReader {
                 continue;
             }
             // TODO repository-wide "mchignore"
-            if (name.contains("ledger.sqlite")) {
+            if (name.contains(".sqlite")) {
                 continue;
             }
             FileInfo.Metadata metadata = metadata(file);
