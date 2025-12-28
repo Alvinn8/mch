@@ -7,9 +7,7 @@ import com.electronwill.nightconfig.core.file.FileConfig;
 import com.mojang.logging.LogUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.kyori.adventure.platform.fabric.FabricServerAudiences;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
@@ -29,7 +27,6 @@ public class MchViewerFabric implements ModInitializer {
     public static final String NAMESPACE = "mch-viewer";
 
     private static MchViewerFabric instance;
-    private volatile FabricServerAudiences adventure;
 
     private final Map<String, RepoViewerConfig> repoViewerConfigs = new HashMap<>();
     private final Map<ResourceKey<Level>, DimensionView> dimensionViews = new HashMap<>();
@@ -47,9 +44,6 @@ public class MchViewerFabric implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(
             (dispatcher, registryAccess, environment) -> new HistoryCommand(this).register(dispatcher)
         );
-
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> this.adventure = FabricServerAudiences.of(server));
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> this.adventure = null);
 
         try {
             this.loadConfig();

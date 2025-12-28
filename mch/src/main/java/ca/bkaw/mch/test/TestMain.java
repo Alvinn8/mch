@@ -67,6 +67,22 @@ import java.util.zip.InflaterInputStream;
 
 public class TestMain {
     public static void main(String[] args) throws IOException {
+        McRegionFileReader reader = new McRegionFileReader(Path.of("/Users/Alvin/Downloads/r.-1.1_entities.mca"));
+        for (int i = 0; i < 32; i++) {
+            for (int j = 0; j < 32; j++) {
+                if (!reader.hasChunk(i, j)) {
+                    continue;
+                }
+                DataInputStream stream = reader.readChunk(i, j);
+                NbtCompound nbt = NbtTag.readCompound(stream);
+                System.out.println("nbt = " + nbt);
+                System.exit(0);
+                System.out.println("Chunk " + i + ", " + j + ":\t" + nbt.byteSize() + " bytes");
+            }
+        }
+    }
+
+    public static void main16(String[] args) throws IOException {
         // Repair a corrupted repo where mchrv files was accidentally deleted.
         //
         // The idea is to use the LastUpdate tag in chunks to reconstruct which commit

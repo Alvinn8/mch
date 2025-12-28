@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 public class HistoryView {
@@ -69,7 +70,7 @@ public class HistoryView {
         RuntimeWorldConfig config = new RuntimeWorldConfig()
             .setGameRule(GameRules.RULE_DAYLIGHT, false)
             .setGenerator(new VoidChunkGenerator(
-                this.server.registryAccess().registryOrThrow(Registries.BIOME)
+                this.server.registryAccess().lookupOrThrow(Registries.BIOME)
             ));
 
         ResourceLocation dimensionType = this.getDimensionType(dimensionKey);
@@ -138,7 +139,9 @@ public class HistoryView {
                 newView.preloadArea(player.getX(), player.getZ(), player).thenRun(() -> this.server.executeIfPossible(() -> {
                     player.teleportTo(
                         newLevel, player.getX(), player.getY(), player.getZ(),
-                        player.getYRot(), player.getXRot()
+                        Set.of(),
+                        player.getYRot(), player.getXRot(),
+                        false
                     );
                     if (!player.getAbilities().flying && player.getAbilities().mayfly) {
                         player.getAbilities().flying = true;
