@@ -1,7 +1,7 @@
 plugins {
     id("java")
-    id("fabric-loom") version "1.7-SNAPSHOT"
-    id("com.github.johnrengelman.shadow") version "7.0.0"
+    id("fabric-loom") version "1.13-SNAPSHOT"
+    id("com.gradleup.shadow") version "9.3.0"
 }
 
 base {

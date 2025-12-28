@@ -15,6 +15,7 @@ dependencies {
     implementation("com.hierynomus:sshj:0.38.0") // SFTP
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
     testImplementation("org.mockftpserver:MockFtpServer:3.1.0")
 }
