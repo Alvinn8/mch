@@ -12,15 +12,13 @@ import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.repository.DimensionAccess;
 import ca.bkaw.mch.repository.RepositoryAccess;
 import ca.bkaw.mch.util.StringPath;
-import net.kyori.adventure.text.Component;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -46,13 +44,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
+import static net.minecraft.world.level.gamerules.GameRules.ADVANCE_TIME;
+
 public class HistoryView {
     private final MchViewerFabric mod;
     private final MinecraftServer server;
     private final RepositoryAccess repositoryAccess;
     private final Sha1 trackedWorldSha1;
     private final CachedCommits cachedCommits;
-    private final Map<ResourceLocation, DimensionView> dimensionViews = new HashMap<>();
+    private final Map<Identifier, DimensionView> dimensionViews = new HashMap<>();
     private CommitInfo commit;
 
     public HistoryView(MchViewerFabric mod, MinecraftServer server, RepositoryAccess repositoryAccess, Sha1 trackedWorldSha1, CommitInfo commit) throws IOException {
@@ -65,21 +65,21 @@ public class HistoryView {
         this.cachedCommits.setup(this.commit);
     }
 
-    public DimensionView viewDimension(ResourceLocation dimensionKey) throws IOException {
+    public DimensionView viewDimension(Identifier dimensionKey) throws IOException {
         Fantasy fantasy = Fantasy.get(this.server);
         RuntimeWorldConfig config = new RuntimeWorldConfig()
-            .setGameRule(GameRules.RULE_DAYLIGHT, false)
+            .setGameRule(ADVANCE_TIME, false)
             .setGenerator(new VoidChunkGenerator(
                 this.server.registryAccess().lookupOrThrow(Registries.BIOME)
             ));
 
-        ResourceLocation dimensionType = this.getDimensionType(dimensionKey);
+        Identifier dimensionType = this.getDimensionType(dimensionKey);
         if (dimensionType != null) {
             config.setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, dimensionType));
         }
 
         String key = RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789");
-        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MchViewerFabric.NAMESPACE, key);
+        Identifier id = Identifier.fromNamespaceAndPath(MchViewerFabric.NAMESPACE, key);
         ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, id);
 
         // Fantasy has the concept of temporary worlds, but they force a generated level
@@ -88,7 +88,7 @@ public class HistoryView {
         // world, but handle file cleanup ourselves.
 
         // Delete dimension folder on exit.
-        Path dimensionPath = ((MinecraftServerAccess) this.server).getSession().getDimensionPath(levelKey);
+        Path dimensionPath = ((MinecraftServerAccess) this.server).getStorageSource().getDimensionPath(levelKey);
         Files.createDirectories(dimensionPath);
         FileUtils.forceDeleteOnExit(dimensionPath.toFile());
 
@@ -125,8 +125,8 @@ public class HistoryView {
         this.commit = commit;
 
         // Update all dimension views to use the new dimension objects.
-        for (Map.Entry<ResourceLocation, DimensionView> entry : new HashMap<>(this.dimensionViews).entrySet()) {
-            ResourceLocation dimensionKey = entry.getKey();
+        for (Map.Entry<Identifier, DimensionView> entry : new HashMap<>(this.dimensionViews).entrySet()) {
+            Identifier dimensionKey = entry.getKey();
             DimensionView oldView = entry.getValue();
 
             // Create new dimension view
@@ -147,7 +147,7 @@ public class HistoryView {
                         player.getAbilities().flying = true;
                         player.onUpdateAbilities();
                     }
-                    this.onStartViewing(player);
+                    this.onStartViewing(player, this.server);
 
                     if (oldLevel.players().isEmpty()) {
                         // Delete old dimension view
@@ -165,8 +165,7 @@ public class HistoryView {
      *
      * @param player The player that entered.
      */
-    public void onStartViewing(ServerPlayer player) {
-        MinecraftServer server = player.getServer();
+    public void onStartViewing(ServerPlayer player, MinecraftServer server) {
         if (server == null) {
             return;
         }
@@ -230,7 +229,7 @@ public class HistoryView {
     }
 
     @Nullable
-    private ResourceLocation getDimensionType(ResourceLocation dimensionKey) throws IOException {
+    private Identifier getDimensionType(Identifier dimensionKey) throws IOException {
         NbtCompound levelData = this.readLevelData();
         if (levelData == null) {
             return null;
@@ -247,7 +246,7 @@ public class HistoryView {
         if (!(dimension.get("type") instanceof NbtString type)) {
             return null;
         }
-        return ResourceLocation.read(type.getValue()).result().orElse(null);
+        return Identifier.read(type.getValue()).result().orElse(null);
     }
 
     public List<String> getDimensions() throws IOException {

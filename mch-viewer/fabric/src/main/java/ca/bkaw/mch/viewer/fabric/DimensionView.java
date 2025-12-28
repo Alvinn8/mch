@@ -76,7 +76,7 @@ public final class DimensionView {
 
             ServerLevel world = this.worldHandle.asWorld();
             // The mixin will intercept this call and ensure that the path is wrapped by mch-fs.
-            Path dimensionPath = ((MinecraftServerAccess) world.getServer()).getSession().getDimensionPath(world.dimension());
+            Path dimensionPath = ((MinecraftServerAccess) world.getServer()).getStorageSource().getDimensionPath(world.dimension());
             Path regionFolder = dimensionPath.resolve("region");
             Path entitiesFolder = dimensionPath.resolve("entities");
 
@@ -115,7 +115,7 @@ public final class DimensionView {
         MinecraftServer server = this.worldHandle.asWorld().getServer();
         if (server instanceof DedicatedServer dedicatedServer) {
             // Add one chunk to have some margin
-            int blockViewDistance = dedicatedServer.getProperties().viewDistance * 16 + 16;
+            int blockViewDistance = dedicatedServer.getProperties().viewDistance.get() * 16 + 16;
             dist = Mth.clamp(blockViewDistance, 6 * 16, 16 * 16);
         } else {
             dist = 16 * 16;

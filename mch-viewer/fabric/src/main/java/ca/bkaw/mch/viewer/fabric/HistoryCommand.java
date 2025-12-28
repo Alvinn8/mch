@@ -21,9 +21,9 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -37,6 +37,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class HistoryCommand {
@@ -62,7 +63,7 @@ public class HistoryCommand {
     public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("history")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .executes(ctx -> {
                     try {
                         return viewDefault(ctx);
@@ -155,11 +156,11 @@ public class HistoryCommand {
                 .then(
                     Commands.literal("dimension")
                         .then(
-                            Commands.argument("key", ResourceLocationArgument.id())
+                            Commands.argument("key", IdentifierArgument.id())
                                 .suggests(this::suggestDimensions)
                                 .executes(ctx -> {
                                     try {
-                                        return changeDimension(ctx, ResourceLocationArgument.getId(ctx, "key"));
+                                        return changeDimension(ctx, IdentifierArgument.getId(ctx, "key"));
                                     } catch (IOException e) {
                                         ctx.getSource().sendFailure(Component.text(e.toString()));
                                         e.printStackTrace();
@@ -206,7 +207,7 @@ public class HistoryCommand {
         CommitInfo commitInfo = new CommitInfo(commit, headCommitRef.getSha1());
 
         HistoryView view = this.mchViewer.view(server, repositoryAccess, trackedWorldSha1, commitInfo);
-        DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.location());
+        DimensionView dimensionView = view.viewDimension(Level.OVERWORLD.identifier());
 
         ServerPlayer player = ctx.getSource().getPlayer();
         if (player != null) {
@@ -221,8 +222,8 @@ public class HistoryCommand {
             // Preload the spawn area off the main thread to avoid crashing the server.
             // Then teleport.
             dimensionView.preloadArea(x, z, player).thenRun(() -> server.executeIfPossible(() -> {
-                player.teleportTo(level, x, y, z, angle, 0);
-                view.onStartViewing(player);
+                player.teleportTo(level, x, y, z, Set.of(), angle, 0, false);
+                view.onStartViewing(player, server);
             }));
         }
 
@@ -433,7 +434,7 @@ public class HistoryCommand {
         });
     }
 
-    private int changeDimension(CommandContext<CommandSourceStack> ctx, ResourceLocation key) throws CommandSyntaxException, IOException {
+    private int changeDimension(CommandContext<CommandSourceStack> ctx, Identifier key) throws CommandSyntaxException, IOException {
         HistoryView historyView = getHistoryView(ctx);
         CommandSourceStack source = ctx.getSource();
 
@@ -455,9 +456,11 @@ public class HistoryCommand {
         toDimension.preloadArea(pos.x(), pos.z(), player).thenRun(() -> source.getServer().executeIfPossible(() -> {
             player.teleportTo(
                 toDimension.getLevel(), pos.x(), pos.y(), pos.z(),
-                player.getYRot(), player.getXRot()
+                Set.of(),
+                player.getYRot(), player.getXRot(),
+                false
             );
-            historyView.onStartViewing(player);
+            historyView.onStartViewing(player, source.getServer());
         }));
 
         return 1;
