@@ -4,6 +4,8 @@ plugins {
     id("com.gradleup.shadow") version "9.3.0"
 }
 
+version = "0.1+${property("minecraft_version")}"
+
 base {
     archivesName = "mch-viewer-fabric"
 }
@@ -60,7 +62,7 @@ tasks {
 
     val remappedShadowJar by registering(net.fabricmc.loom.task.RemapJarTask::class) {
         dependsOn(shadowJar)
-        input = shadowJar.get().archiveFile
+        inputFile = shadowJar.get().archiveFile
         addNestedDependencies = true
         archiveBaseName.set("mch-viewer-fabric")
     }

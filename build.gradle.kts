@@ -5,11 +5,11 @@ plugins {
 
 
 group = "ca.bkaw.mch"
-version = "0.1-SNAPSHOT"
+version = "0.1"
 
 tasks {
     runServer {
-        minecraftVersion("1.21.1")
+        minecraftVersion("1.21.11")
     }
 }
 
@@ -17,7 +17,7 @@ subprojects {
     apply(plugin = "java-library")
 
     group = "ca.bkaw.mch"
-    version = "0.1-SNAPSHOT"
+    version = rootProject.version
 
     java {
         toolchain {
