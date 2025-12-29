@@ -13,6 +13,42 @@ A "version control system" for Minecraft worlds.
 Can be used to back up worlds in a storage efficient way and keep a history of
 worlds. 
 
+## Install (Unix: macOS/Linux)
+
+mch is distributed as a single runnable jar plus a small `mch` launcher script.
+The default install is **user-local** (no `sudo`):
+
+- `~/.local/share/mch/versions/<version>/mch-cli-all.jar`
+- `~/.local/share/mch/current -> versions/<version>`
+- `~/.local/bin/mch`
+
+### Install latest
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bkaw/mch/main/scripts/install.sh | bash
+```
+
+### PATH setup
+
+If `mch` isn’t found after install, add this to your shell config (`~/.bashrc`, `~/.zshrc`, ...):
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Upgrade
+
+Re-run the installer. It installs the jar into a **versioned** directory and updates the `current` link.
+
+### Uninstall
+
+```bash
+rm -f ~/.local/bin/mch
+rm -rf ~/.local/share/mch
+```
+
+> Java is required to run mch. If you don’t have `java` installed, install a JRE/JDK first.
+
 ## How?
 When a new commit (a backup / snapshot of the world) is made, mch will only
 re-save the parts of the world that changed. Everything that didn't change

@@ -25,5 +25,5 @@ tasks.compileJava {
 }
 
 tasks.shadowJar {
-    archiveFileName = "mch-cli-all.jar"
+    archiveFileName = "mch-cli-all-${version}.jar"
 }

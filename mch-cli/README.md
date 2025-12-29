@@ -1,7 +1,8 @@
 # mch-cli
 The mch CLI is the main way to interact with an mch repository.
 
-> Note: There is no installer the mch cli at this time!
+## Installing
+See the [README](../README.md) for installation instructions.
 
 ## Creating a repository
 

@@ -5,7 +5,7 @@ plugins {
 
 
 group = "ca.bkaw.mch"
-version = "0.1"
+version = "0.1.1-SNAPSHOT"
 
 tasks {
     runServer {
