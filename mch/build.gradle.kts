@@ -31,17 +31,11 @@ publishing {
 
     repositories {
         maven {
-            name = "GitHubPackages"
-            val githubRepo = System.getenv("GITHUB_REPOSITORY") ?: ""
-            val parts = githubRepo.split("/")
-            val owner = if (parts.size >= 2) parts[0] else "OWNER"
-            val repo = if (parts.size >= 2) parts[1] else "REPO"
-            url = uri("https://maven.pkg.github.com/$owner/$repo")
-
             credentials {
-                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
-                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_PASSWORD")
             }
+            url = uri(System.getenv("MAVEN_URL"))
         }
     }
 }

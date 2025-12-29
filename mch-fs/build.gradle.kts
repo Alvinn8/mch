@@ -17,4 +17,14 @@ publishing {
     publications.create<MavenPublication>("maven") {
         from(components["java"])
     }
+
+    repositories {
+        maven {
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_PASSWORD")
+            }
+            url = uri(System.getenv("MAVEN_URL"))
+        }
+    }
 }
