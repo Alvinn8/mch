@@ -20,11 +20,18 @@ publishing {
 
     repositories {
         maven {
+            val isSnapshot = version.toString().endsWith("-SNAPSHOT")
+            url = uri(
+                if (isSnapshot) {
+                    "https://maven.bkaw.ca/repository/maven-snapshots/"
+                } else {
+                    "https://maven.bkaw.ca/repository/maven-releases/"
+                }
+            )
             credentials {
                 username = System.getenv("MAVEN_USERNAME")
                 password = System.getenv("MAVEN_PASSWORD")
             }
-            url = uri(System.getenv("MAVEN_URL") ?: "https://maven.bkaw.ca/repository/maven-releases/")
         }
     }
 }
