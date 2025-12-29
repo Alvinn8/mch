@@ -35,7 +35,7 @@ publishing {
                 username = System.getenv("MAVEN_USERNAME")
                 password = System.getenv("MAVEN_PASSWORD")
             }
-            url = uri(System.getenv("MAVEN_URL"))
+            url = uri(System.getenv("MAVEN_URL") ?: "https://maven.bkaw.ca/repository/maven-releases/")
         }
     }
 }
