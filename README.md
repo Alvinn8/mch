@@ -25,7 +25,7 @@ The default install is **user-local** (no `sudo`):
 ### Install latest
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bkaw/mch/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Alvinn8/mch/main/scripts/install.sh | bash
 ```
 
 ### PATH setup
