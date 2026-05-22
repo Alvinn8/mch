@@ -115,7 +115,7 @@ public class TestMain {
         Path repoPath = Path.of("/Users/Alvin/Documents/mch/metacraft/metacraft-survival/mch").toAbsolutePath();
         String outputDimensionKey = "mch_repair_repo_test";
 
-        MchRepository repo = new MchRepository(repoPath);
+        MchRepository repo = MchRepository.of(repoPath);
         repo.readConfiguration();
 
         TrackedWorld trackedWorld = repo.getConfiguration().getTrackedWorld(Sha1.fromString("d6cd92545d49add9a5157a6bc7647a59ea4b1c38"));
@@ -413,7 +413,7 @@ public class TestMain {
 
         Sha1 sha1 = Sha1.fromString(hash);
 
-        MchRepository repository = new MchRepository(Path.of("run/mch"));
+        MchRepository repository = MchRepository.of(Path.of("run"));
 
         StorageObject storageObject;
         try {

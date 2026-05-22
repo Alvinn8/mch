@@ -18,6 +18,7 @@ import ca.bkaw.mch.region.mc.McRegionFileWriter;
 import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
+import ca.bkaw.mch.util.StringPath;
 import ca.bkaw.mch.util.Util;
 import com.google.inject.Inject;
 import picocli.CommandLine.Command;
@@ -72,6 +73,13 @@ public class RestoreCommand implements Callable<Integer> {
             Path worldPath = path.resolve(trackedWorld.getName());
             Files.createDirectories(worldPath);
 
+            // Restore miscellaneous files
+            Reference20<Tree> miscellaneousFilesReference = world.getMiscellaneousFiles();
+            if (miscellaneousFilesReference != null) {
+                Tree worldMiscellaneousFiles = miscellaneousFilesReference.resolve(this.repository);
+                this.restoreTree(worldMiscellaneousFiles, worldPath);
+            }
+
             for (Map.Entry<String, Reference20<Dimension>> entry2 : world.getDimensions().entrySet()) {
                 String dimensionKey = entry2.getKey();
                 System.out.println("Restoring dimension " + dimensionKey);
@@ -79,7 +87,8 @@ public class RestoreCommand implements Callable<Integer> {
                 // The snapshot of the dimension we want to restore to
                 Dimension dimension = entry2.getValue().resolve(this.repository);
 
-                Path dimensionPath = Util.getDimensionPath(worldPath, dimensionKey);
+                StringPath dimensionRelativePath = Util.getDimensionPath(world.getLayout(), dimensionKey);
+                Path dimensionPath = worldPath.resolve(Util.noLeadingSlash(dimensionRelativePath.toString()));
                 Files.createDirectories(dimensionPath);
 
                 // Restore miscellaneous files

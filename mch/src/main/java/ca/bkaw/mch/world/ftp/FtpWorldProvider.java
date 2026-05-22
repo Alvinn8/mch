@@ -44,9 +44,7 @@ public class FtpWorldProvider implements WorldProvider {
     }
 
     private String getPath(StringPath path) {
-        String ret = this.worldPath.resolve(Util.noLeadingSlash(path.toString())).toString();
-        System.out.println("ret = " + ret);
-        return ret;
+		return this.worldPath.resolve(Util.noLeadingSlash(path.toString())).toString();
     }
 
     @Override

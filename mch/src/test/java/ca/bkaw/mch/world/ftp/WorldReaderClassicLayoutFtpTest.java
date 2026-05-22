@@ -1,6 +1,7 @@
 package ca.bkaw.mch.world.ftp;
 
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.Util;
 import ca.bkaw.mch.world.RegionFileInfo;
@@ -21,7 +22,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class WorldReaderFtpTest {
+public class WorldReaderClassicLayoutFtpTest {
     static FakeFtpServer ftpServer;
     static WorldReader worldReader;
 
@@ -58,7 +59,7 @@ public class WorldReaderFtpTest {
     void dimensions() throws IOException {
         assertEquals(
             Set.of(Dimension.OVERWORLD, Dimension.NETHER),
-            Set.copyOf(worldReader.getDimensions())
+            Set.copyOf(worldReader.getDimensions(World.Layout.CLASSIC))
         );
     }
 
@@ -66,7 +67,7 @@ public class WorldReaderFtpTest {
     void regionFiles() throws IOException {
         assertEquals(
             List.of("r.0.0.mca", "r.1.0.mca"),
-            worldReader.getRegionFiles(Dimension.OVERWORLD)
+            worldReader.getRegionFiles(World.Layout.CLASSIC, Dimension.OVERWORLD)
                 .stream()
                 .map(RegionFileInfo::fileName)
                 .sorted()
@@ -76,7 +77,7 @@ public class WorldReaderFtpTest {
 
     @Test
     void readRegionFile() throws IOException {
-        try (RandomAccessReader reader = worldReader.openRegionFile(Dimension.OVERWORLD, "r.0.0.mca", 32)) {
+        try (RandomAccessReader reader = worldReader.openRegionFile(World.Layout.CLASSIC, Dimension.OVERWORLD, "r.0.0.mca", 32)) {
             byte b = reader.readByte();
             assertEquals('a', b);
         }

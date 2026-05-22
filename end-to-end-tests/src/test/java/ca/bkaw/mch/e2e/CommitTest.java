@@ -27,7 +27,7 @@ public class CommitTest {
         mchCli(tempDir, "commit");
 
         // Check that there is exactly one commit.
-        MchRepository repo = new MchRepository(tempDir.resolve("mch"));
+        MchRepository repo = MchRepository.of(tempDir);
         Reference20<Commit> commitRef = repo.getHeadCommit();
         assertNotNull(commitRef);
 
@@ -59,7 +59,7 @@ public class CommitTest {
         mchCli(tempDir, "commit");
         mchCli(tempDir, "commit");
 
-        MchRepository repo = new MchRepository(tempDir.resolve("mch"));
+        MchRepository repo = MchRepository.of(tempDir);
         Reference20<Commit> headCommitRef = repo.getHeadCommit();
         assertNotNull(headCommitRef);
         Commit headCommit = headCommitRef.resolve(repo);

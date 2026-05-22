@@ -69,11 +69,7 @@ public class RepoViewerConfig {
         if (config.contains("path")) {
             String pathStr = config.get("path");
             Path path = Path.of(pathStr);
-            Path mchPath = path.resolve("mch");
-            if (Files.exists(mchPath)) {
-                path = mchPath;
-            }
-            MchRepository repository = new MchRepository(path);
+            MchRepository repository = MchRepository.of(path);
             if (!repository.exists()) {
                 throw new RuntimeException("There is no repository at the path: '" + pathStr + "'.");
             }

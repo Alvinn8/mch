@@ -18,6 +18,7 @@ import ca.bkaw.mch.repository.MchConfiguration;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 import ca.bkaw.mch.util.RandomAccessReader;
+import ca.bkaw.mch.util.StringPath;
 import ca.bkaw.mch.world.RegionFileInfo;
 import ca.bkaw.mch.world.WorldAccessor;
 import ca.bkaw.mch.world.WorldProvider;
@@ -51,14 +52,35 @@ public class CommitOperation {
             try (WorldProvider worldProvider = worldAccessor.access(repository)) {
                 WorldReader worldReader = new WorldReader(worldProvider);
 
-                // The world object for this version of the tracked world.
-                World world = new World();
+                // Determine the world layout.
+                World.Layout layout = worldReader.determineWorldLayout();
+                if (layout == null) {
+                    return;
+                }
 
                 World currentWorld = resolve(repository, currentWorldContainer != null
                     ? currentWorldContainer.getWorld(trackedWorld.getId())
                     : null);
 
-                for (String dimensionKey : worldReader.getDimensions()) {
+                Tree currentWorldMiscellaneousFiles = resolve(repository, currentWorld != null
+                    ? currentWorld.getMiscellaneousFiles()
+                    : null);
+
+                // Track miscellaneous files in the root of the world folder
+                Reference20<Tree> worldMiscellaneousFilesReference = worldReader.trackDirectoryTreePath(
+                    StringPath.root(),
+                    repository,
+                    str -> switch (str) {
+                        case "region", "DIM1", "DIM-1", "dimensions", "mch", ".mch" -> false;
+                        default -> true;
+                    },
+                    currentWorldMiscellaneousFiles
+                );
+
+                // The world object for this version of the tracked world.
+                World world = new World(layout, worldMiscellaneousFilesReference);
+
+                for (String dimensionKey : worldReader.getDimensions(layout)) {
 
                     System.out.println("Processing dimension " + dimensionKey);
 
@@ -66,29 +88,31 @@ public class CommitOperation {
                         ? currentWorld.getDimension(dimensionKey)
                         : null);
 
-                    Tree currentMiscellaneousFiles = resolve(repository, currentDimension != null ?
+                    Tree currentDimensionMiscellaneousFiles = resolve(repository, currentDimension != null ?
                         currentDimension.getMiscellaneousFiles()
                         : null);
 
                     // Track miscellaneous files
-                    Reference20<Tree> treeReference = worldReader.trackDirectoryTree(
+                    Reference20<Tree> dimensionMiscellaneousFilesReference = worldReader.trackDirectoryTree(
+                        layout,
                         dimensionKey,
                         repository,
                         str -> switch (str) {
-                            case "region", "DIM1", "DIM-1", "dimensions", "mch" -> false;
+                            // TODO if the DIMENSIONS world laytout is used then only "region" needs to be here
+                            case "region", "DIM1", "DIM-1", "dimensions", "mch", ".mch" -> false;
                             default -> true;
                         },
-                        currentMiscellaneousFiles
+                        currentDimensionMiscellaneousFiles
                     );
 
                     // The dimension object for this version of the dimension.
-                    Dimension dimension = new Dimension(treeReference);
+                    Dimension dimension = new Dimension(dimensionMiscellaneousFilesReference);
 
                     // Store region files
                     int unmodifiedRegionFiles = 0;
                     int emptyRegionFiles = 0;
 
-                    for (RegionFileInfo regionFileInfo : worldReader.getRegionFiles(dimensionKey)) {
+                    for (RegionFileInfo regionFileInfo : worldReader.getRegionFiles(layout, dimensionKey)) {
                         if (regionFileInfo.fileSize() == 0) {
                             // I am not sure how or why these empty region files are created, but since they
                             // are 0 bytes they do not contain valid data. Skip them to avoid crashing.
@@ -130,7 +154,7 @@ public class CommitOperation {
 
                         int[] chunkVersionNumbers = new int[1024];
                         try (
-                            RandomAccessReader reader = worldReader.openRegionFile(dimensionKey, regionFileInfo.fileName(), regionFileInfo.fileSize());
+                            RandomAccessReader reader = worldReader.openRegionFile(layout, dimensionKey, regionFileInfo.fileName(), regionFileInfo.fileSize());
                             McRegionFileReader mcRegionFile = new McRegionFileReader(reader)
                         ) {
                             RegionStorageVisitor.visit(

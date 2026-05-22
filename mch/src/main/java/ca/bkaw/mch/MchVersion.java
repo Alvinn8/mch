@@ -8,7 +8,7 @@ public class MchVersion {
      * The version number used in object files to determine which version of mch it
      * was saved in.
      */
-    public static final int VERSION_NUMBER = 13;
+    public static final int VERSION_NUMBER = 14;
 
     private MchVersion() {}
 

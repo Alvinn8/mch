@@ -26,7 +26,7 @@ public class LosslessLossyTest {
 
         mchCli(tempDir, "commit");
 
-        MchRepository repo = new MchRepository(tempDir.resolve("mch"));
+        MchRepository repo = MchRepository.of(tempDir);
         Reference20<Commit> headCommit = repo.getHeadCommit();
         assertNotNull(headCommit);
 
@@ -47,7 +47,7 @@ public class LosslessLossyTest {
 
         mchCli(tempDir, "commit");
 
-        MchRepository repo = new MchRepository(tempDir.resolve("mch"));
+        MchRepository repo = MchRepository.of(tempDir);
         Reference20<Commit> headCommit = repo.getHeadCommit();
         assertNotNull(headCommit);
 

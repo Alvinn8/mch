@@ -1,6 +1,7 @@
 package ca.bkaw.mch.util;
 
 import ca.bkaw.mch.object.dimension.Dimension;
+import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.repository.TrackedWorld;
 
@@ -16,20 +17,33 @@ public final class Util {
     private Util() {}
 
     /**
-     * Get the path where the dimension is stored.
+     * Get the path where the dimension is stored in the classic world layout.
      * <p>
-     * Note that {@link Dimension#OVERWORLD} will return the world path.
+     * The {@link Dimension#OVERWORLD} will return the root world path.
      *
-     * @param worldPath The world path.
-     * @param dimensionKey The dimension key.
+     * @param dimension The dimension key.
      * @return The dimension path.
      */
-    public static Path getDimensionPath(Path worldPath, String dimensionKey) {
-        return switch (dimensionKey) {
-            case Dimension.OVERWORLD -> worldPath;
-            case Dimension.NETHER -> worldPath.resolve(NETHER_FOLDER);
-            case Dimension.THE_END -> worldPath.resolve(THE_END_FOLDER);
-            default -> worldPath.resolve("dimensions").resolve(dimensionKey.replace(':', File.separatorChar));
+    private static StringPath getClassicDimensionPath(String dimension) {
+        return switch (dimension) {
+            case Dimension.OVERWORLD -> StringPath.root();
+            case Dimension.NETHER -> StringPath.of(Util.NETHER_FOLDER);
+            case Dimension.THE_END -> StringPath.of(Util.THE_END_FOLDER);
+            default -> StringPath.of( "dimensions/" + dimension.replace(':', '/'));
+        };
+    }
+
+    /**
+     * Get the path where the dimension is stored in the world layout.
+     *
+     * @param layout The world layout.
+     * @param dimension The dimension key.
+     * @return The dimension path.
+     */
+    public static StringPath getDimensionPath(World.Layout layout, String dimension) {
+        return switch (layout) {
+            case CLASSIC -> getClassicDimensionPath(dimension);
+            case DIMENSIONS -> StringPath.of("dimensions/" + dimension.replace(':', '/'));
         };
     }
 

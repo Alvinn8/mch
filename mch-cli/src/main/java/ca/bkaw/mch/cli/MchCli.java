@@ -20,6 +20,7 @@ import java.nio.file.Path;
     ResearchCommand.class,
     RestoreCommand.class,
     SftpCommand.class,
+    VersionCommand.class,
     WorldCommand.class,
 })
 public class MchCli {

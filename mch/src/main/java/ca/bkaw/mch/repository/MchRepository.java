@@ -33,13 +33,64 @@ import java.util.List;
 
 public class MchRepository implements RepositoryAccess {
     /**
-     * The root of the repository.
+     * The root of the repository. The ".mch" directory.
      */
     private final Path root;
     private MchConfiguration configuration;
 
+    /** @deprecated Please use {@link #of(Path)}. */
+    @Deprecated
     public MchRepository(Path root) {
         this.root = root;
+    }
+
+    public static MchRepository of(Path dir) {
+        if (Files.notExists(dir.resolve("configuration"))) {
+            // This does not appear to be the .mch directory.
+            // This may be the "project directory".
+            if (Files.exists(dir.resolve(".mch/configuration"))) {
+                dir = dir.resolve(".mch");
+            }
+            // This may be the old "mch" directory from mch version number <= 13.
+            else if (Files.exists(dir.resolve("mch/configuration"))) {
+                System.out.println(
+                    "Warning: The mch repository directory 'mch' has been renamed to '.mch'. " +
+                        "Please rename it to avoid this warning. In folder: " +
+                        dir.toAbsolutePath()
+                );
+                dir = dir.resolve("mch");
+            }
+            // See if it has been renamed to ".mch".
+            else if (dir.getFileName().toString().equals("mch")
+                && Files.exists(dir.resolve("../.mch/configuration"))) {
+                System.out.println(
+                    "Warning: The mch repository directory 'mch' has been renamed to '.mch'. " +
+                        "Please rename it to avoid this warning. In folder: " +
+                        dir.getParent().toAbsolutePath()
+                );
+                dir = dir.resolve("../.mch").normalize();
+            }
+        } else if (dir.getFileName().toString().equals("mch")) {
+            System.out.println(
+                "Warning: The mch repository directory 'mch' has been renamed to '.mch'. " +
+                    "Please rename it to avoid this warning. In folder: " +
+                    dir.getParent().toAbsolutePath()
+            );
+        }
+        return new MchRepository(dir);
+    }
+
+    /**
+     * Create an {@link MchRepository} instance from the project directory.
+     * <p>
+     * The project directory is the directory that contains the {@code .mch}
+     * directory.
+     *
+     * @param projectDir The project directory.
+     * @return The repository instance.
+     */
+    public static MchRepository ofProjectDirectory(Path projectDir) {
+        return new MchRepository(projectDir.resolve(".mch"));
     }
 
     /**
@@ -116,7 +167,7 @@ public class MchRepository implements RepositoryAccess {
     }
 
     /**
-     * Get the path to the root of the repository. Also known as the "mch" directory.
+     * Get the path to the root of the repository. Also known as the ".mch" directory.
      *
      * @return The path.
      */

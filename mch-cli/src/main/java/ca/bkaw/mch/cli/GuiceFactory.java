@@ -68,9 +68,9 @@ public class GuiceFactory implements IFactory {
         }
 
         private MchRepository tryFindRepositoryInPath(Path path) {
-            Path mchPath = path.resolve("mch");
-            if (Files.isDirectory(mchPath)) {
-                return new MchRepository(mchPath);
+            MchRepository repository = MchRepository.of(path);
+            if (repository.exists()) {
+                return repository;
             }
             return null;
         }

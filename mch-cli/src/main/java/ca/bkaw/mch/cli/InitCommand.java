@@ -19,12 +19,11 @@ public class InitCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        Path mchPath = this.workingDir.resolve("mch");
-        if (Files.exists(mchPath)) {
+        MchRepository repository = MchRepository.ofProjectDirectory(this.workingDir);
+        if (repository.exists()) {
             System.err.println("There is already an mch repository in this folder.");
             return ExitCode.USAGE;
         }
-        MchRepository repository = new MchRepository(mchPath);
         try {
             repository.createDirectories();
             repository.readConfiguration();

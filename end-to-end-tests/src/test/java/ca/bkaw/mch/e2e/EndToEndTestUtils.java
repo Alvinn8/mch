@@ -42,6 +42,16 @@ public class EndToEndTestUtils {
         }
     }
 
+    public static void extractRepo(String repoName, Path destPath) throws IOException {
+        Files.createDirectories(destPath);
+        Path zipPath = Path.of("src/test/resources/test-repos/" + repoName + ".zip");
+
+        try (FileSystem fileSystem = FileSystems.newFileSystem(URI.create("jar:" + zipPath.toUri()), new HashMap<>())) {
+            Path path = fileSystem.getPath(".");
+            extractRecursive(path, destPath);
+        }
+    }
+
     private static void extractRecursive(Path sourceDir, Path destDir) throws IOException {
         try (Stream<Path> stream = Files.list(sourceDir)) {
             for (Path source : stream.toList()) {

@@ -5,6 +5,7 @@ import ca.bkaw.mch.object.Reference20;
 import ca.bkaw.mch.object.blob.Blob;
 import ca.bkaw.mch.object.dimension.Dimension;
 import ca.bkaw.mch.object.tree.Tree;
+import ca.bkaw.mch.object.world.World;
 import ca.bkaw.mch.repository.MchRepository;
 import ca.bkaw.mch.util.RandomAccessReader;
 import ca.bkaw.mch.util.StringPath;
@@ -43,7 +44,73 @@ public class WorldReader {
         );
     }
 
-    public List<String> getDimensions() throws IOException {
+    /**
+     * Determine the world layout by checking for the presence of certain files and
+     * directories.
+     * <p>
+     * May return null if the layout cannot be determined, which may indicate that the
+     * folder is not a world.
+     *
+     * @return The world layout, or null.
+     * @throws IOException If an I/O error occurs.
+     */
+    @Nullable
+    public World.Layout determineWorldLayout() throws IOException {
+        if (this.provider.stat(StringPath.root()) == null) {
+            return null;
+        }
+        boolean classicLayout = false;
+        boolean dimensionsLayout = false;
+        for (FileInfo file : this.provider.list(StringPath.root())) {
+            String name = file.name();
+            if (isClassicLayoutDirectoryName(name)) {
+                classicLayout = true;
+                continue;
+            }
+            if ("dimensions".equals(name) && hasVanillaDimensionsLayout()) {
+                dimensionsLayout = true;
+            }
+        }
+
+        if (classicLayout && dimensionsLayout) {
+            throw new RuntimeException("The world has both classic and new layout. This may cause unexpected behavior and is not supported by mch.");
+        } else if (classicLayout) {
+            return World.Layout.CLASSIC;
+        } else if (dimensionsLayout) {
+            return World.Layout.DIMENSIONS;
+        } else {
+            return null;
+        }
+    }
+
+    private boolean isClassicLayoutDirectoryName(String name) {
+        return "region".equals(name)
+            || Util.NETHER_FOLDER.equals(name)
+            || Util.THE_END_FOLDER.equals(name);
+    }
+
+    /**
+     * Check for vanilla dimensions in the dimensions directory.
+     *
+     * @return true if the dimensions directory contains vanilla dimensions, false otherwise.
+     * @throws IOException If an I/O error occurs.
+     */
+    private boolean hasVanillaDimensionsLayout() throws IOException {
+        if (this.provider.stat(StringPath.of("/dimensions/minecraft")) == null) {
+            return false;
+        }
+
+        for (FileInfo dimension : this.provider.list(StringPath.of("/dimensions/minecraft"))) {
+            String name = dimension.name();
+            if ("overworld".equals(name) || "the_nether".equals(name) || "the_end".equals(name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public List<String> getClassicDimensions() throws IOException {
         StringPath rootPath = StringPath.root();
         List<FileInfo> directories = this.provider.list(rootPath);
 
@@ -75,17 +142,36 @@ public class WorldReader {
         return dimensions;
     }
 
-    private StringPath getDimensionPath(String dimension) {
-        return switch (dimension) {
-            case Dimension.OVERWORLD -> StringPath.root();
-            case Dimension.NETHER -> StringPath.of(Util.NETHER_FOLDER);
-            case Dimension.THE_END -> StringPath.of(Util.THE_END_FOLDER);
-            default -> StringPath.of( "dimensions/" + dimension.replace(':', '/'));
+    public List<String> getDimensions(World.Layout layout) throws IOException {
+        return switch (layout) {
+            case CLASSIC -> getClassicDimensions();
+            case DIMENSIONS -> {
+                StringPath dimensionsPath = StringPath.of("dimensions");
+                if (this.provider.stat(dimensionsPath) == null) {
+                    yield List.of();
+                }
+                List<String> dimensions = new ArrayList<>();
+                for (FileInfo namespaceDirectory : this.provider.list(dimensionsPath)) {
+                    if (!metadata(namespaceDirectory).isDirectory()) {
+                        continue;
+                    }
+                    String namespace = namespaceDirectory.name();
+                    for (FileInfo keyDirectory : this.provider.list(dimensionsPath.resolve(namespace))) {
+                        if (!metadata(keyDirectory).isDirectory()) {
+                            continue;
+                        }
+                        String key = keyDirectory.name();
+                        String dimensionKey = namespace + ':' + key;
+                        dimensions.add(dimensionKey);
+                    }
+                }
+                yield dimensions;
+            }
         };
     }
 
-    public List<RegionFileInfo> getRegionFiles(String dimension) throws IOException {
-        StringPath path = getDimensionPath(dimension).resolve("region");
+    public List<RegionFileInfo> getRegionFiles(World.Layout layout, String dimension) throws IOException {
+        StringPath path = Util.getDimensionPath(layout, dimension).resolve("region");
         if (this.provider.stat(path) == null) {
             return List.of();
         }
@@ -105,13 +191,13 @@ public class WorldReader {
         return regionFiles;
     }
 
-    public RandomAccessReader openRegionFile(String dimension, String regionFileName, long estimatedSize) throws IOException {
-        StringPath path = this.getDimensionPath(dimension).resolve("region").resolve(regionFileName);
+    public RandomAccessReader openRegionFile(World.Layout layout, String dimension, String regionFileName, long estimatedSize) throws IOException {
+        StringPath path = Util.getDimensionPath(layout, dimension).resolve("region").resolve(regionFileName);
         return this.provider.openFile(path, estimatedSize);
     }
 
-    public Reference20<Tree> trackDirectoryTree(String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
-        return this.trackDirectoryTreePath(this.getDimensionPath(dimension), repository, predicate, currentTree);
+    public Reference20<Tree> trackDirectoryTree(World.Layout layout, String dimension, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
+        return this.trackDirectoryTreePath(Util.getDimensionPath(layout, dimension), repository, predicate, currentTree);
     }
 
     public Reference20<Tree> trackDirectoryTreePath(StringPath path, MchRepository repository, Predicate<String> predicate, @Nullable Tree currentTree) throws IOException {
