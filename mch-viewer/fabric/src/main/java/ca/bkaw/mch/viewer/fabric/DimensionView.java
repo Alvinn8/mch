@@ -9,7 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
-import xyz.nucleoid.fantasy.RuntimeWorldHandle;
+import xyz.nucleoid.fantasy.RuntimeLevelHandle;
 import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
 
 import java.nio.file.Files;
@@ -22,7 +22,7 @@ public final class DimensionView {
     private final HistoryView parent;
     private final MchFileSystem fileSystem;
     private final Path rootPath;
-    private RuntimeWorldHandle worldHandle;
+    private RuntimeLevelHandle levelHandle;
 
     public DimensionView(HistoryView parent, MchFileSystem fileSystem, Path rootPath) {
         this.parent = parent;
@@ -34,19 +34,19 @@ public final class DimensionView {
         return this.parent;
     }
 
-    public void setWorldHandle(RuntimeWorldHandle worldHandle) {
-        if (this.worldHandle != null) {
-            throw new IllegalStateException("Cannot change world handle.");
+    public void setLevelHandle(RuntimeLevelHandle levelHandle) {
+        if (this.levelHandle != null) {
+            throw new IllegalStateException("Cannot change level handle.");
         }
-        this.worldHandle = worldHandle;
+        this.levelHandle = levelHandle;
     }
 
-    public RuntimeWorldHandle getWorldHandle() {
-        return this.worldHandle;
+    public RuntimeLevelHandle getLevelHandle() {
+        return this.levelHandle;
     }
 
     public ServerLevel getLevel() {
-        return this.worldHandle.asWorld();
+        return this.levelHandle.asLevel();
     }
 
     public Path wrapPath(Path original) {
@@ -74,7 +74,7 @@ public final class DimensionView {
             Set<String> regionFileNames = this.getPreloadRegionFiles(blockX, blockZ);
             System.out.println("Preloading " + regionFileNames.size() + " region files: " + regionFileNames);
 
-            ServerLevel world = this.worldHandle.asWorld();
+            ServerLevel world = this.levelHandle.asLevel();
             // The mixin will intercept this call and ensure that the path is wrapped by mch-fs.
             Path dimensionPath = ((MinecraftServerAccess) world.getServer()).getStorageSource().getDimensionPath(world.dimension());
             Path regionFolder = dimensionPath.resolve("region");
@@ -112,7 +112,7 @@ public final class DimensionView {
         final int regionBlockSize = 32 * 16;
 
         // Check view-distance and preload accordingly.
-        MinecraftServer server = this.worldHandle.asWorld().getServer();
+        MinecraftServer server = this.levelHandle.asLevel().getServer();
         if (server instanceof DedicatedServer dedicatedServer) {
             // Add one chunk to have some margin
             int blockViewDistance = dedicatedServer.getProperties().viewDistance.get() * 16 + 16;

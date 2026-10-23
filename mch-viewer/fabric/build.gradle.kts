@@ -1,7 +1,6 @@
 plugins {
     id("java")
-    id("fabric-loom") version "1.13-SNAPSHOT"
-    id("com.gradleup.shadow") version "9.3.0"
+    id("net.fabricmc.fabric-loom") version "1.18-SNAPSHOT"
 }
 
 version = "0.1+${property("minecraft_version")}"
@@ -19,18 +18,25 @@ repositories {
 dependencies {
     // Fabric
     minecraft("com.mojang:minecraft:${property("minecraft_version")}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
+    implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
 
     // mod dependencies
-    include(modImplementation("xyz.nucleoid:fantasy:${property("fantasy_version")}")!!)
-    include(modImplementation("net.kyori:adventure-platform-fabric:${property("adventure_version")}")!!)
+    include(implementation("xyz.nucleoid:fantasy:${property("fantasy_version")}")!!)
+    include(implementation("net.kyori:adventure-platform-fabric:${property("adventure_version")}")!!)
 
     // mch dependencies
-    implementation(project(":mch"))!!
-    implementation(project(":mch-fs"))!!
+    include(implementation(project(":mch"))!!)
+    include(implementation(project(":mch-fs"))!!)
     compileOnly("org.jetbrains:annotations:24.0.1")
+
+    // include is not transitive, so the dependencies of mch need to be included
+    // explicitly. Keep these versions in sync with mch/build.gradle.kts
+    // TODO add gradle.properties for these?
+    include("com.github.luben:zstd-jni:1.5.5-5")
+    include("org.json:json:20240303")
+    include("commons-net:commons-net:3.9.0")
+    include("com.hierynomus:sshj:0.38.0")
 
     include(implementation("com.electronwill.night-config:core:${property("night_config_version")}")!!)
     include(implementation("com.electronwill.night-config:toml:${property("night_config_version")}")!!)
@@ -42,37 +48,5 @@ tasks {
             expand(getProperties())
             expand(mutableMapOf("version" to project.version))
         }
-    }
-
-    shadowJar {
-        archiveBaseName.set("mch-viewer-fabric-dev")
-        archiveClassifier.set("")
-
-        dependencies {
-            exclude("net.fabricmc:.*")
-            exclude("xyz.nucleoid:fantasy")
-            include(dependency("ca.bkaw.mch:.*"))
-            include(dependency("com.github.luben:zstd-jni:.*"))
-            include(dependency("commons-net:commons-net:.*"))
-            include(dependency("com.hierynomus:sshj:.*"))
-            include(dependency("org.json:json:.*"))
-            exclude("/mappings/*")
-        }
-    }
-
-    val remappedShadowJar by registering(net.fabricmc.loom.task.RemapJarTask::class) {
-        dependsOn(shadowJar)
-        inputFile = shadowJar.get().archiveFile
-        addNestedDependencies = true
-        archiveBaseName.set("mch-viewer-fabric")
-    }
-
-    assemble {
-        dependsOn(remappedShadowJar)
-    }
-
-    artifacts {
-        archives(remappedShadowJar)
-        shadow(shadowJar)
     }
 }

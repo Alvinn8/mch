@@ -26,9 +26,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector4d;
 import xyz.nucleoid.fantasy.Fantasy;
-import xyz.nucleoid.fantasy.RuntimeWorld;
-import xyz.nucleoid.fantasy.RuntimeWorldConfig;
-import xyz.nucleoid.fantasy.RuntimeWorldHandle;
+import xyz.nucleoid.fantasy.RuntimeLevel;
+import xyz.nucleoid.fantasy.RuntimeLevelConfig;
+import xyz.nucleoid.fantasy.RuntimeLevelHandle;
 import xyz.nucleoid.fantasy.mixin.MinecraftServerAccess;
 import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 
@@ -67,7 +67,7 @@ public class HistoryView {
 
     public DimensionView viewDimension(Identifier dimensionKey) throws IOException {
         Fantasy fantasy = Fantasy.get(this.server);
-        RuntimeWorldConfig config = new RuntimeWorldConfig()
+        RuntimeLevelConfig config = new RuntimeLevelConfig()
             .setGameRule(ADVANCE_TIME, false)
             .setGenerator(new VoidChunkGenerator(
                 this.server.registryAccess().lookupOrThrow(Registries.BIOME)
@@ -106,14 +106,14 @@ public class HistoryView {
         this.mod.registerDimensionView(levelKey, dimensionView);
 
         // Overwrite the constructor to pass TEMPORARY as the world type.
-        RuntimeWorld.Constructor constructor = config.getWorldConstructor();
-        config.setWorldConstructor((server0, levelKey0, config0, _style)
-            -> constructor.createWorld(server0, levelKey0, config0, RuntimeWorld.Style.TEMPORARY));
+        RuntimeLevel.Constructor constructor = config.getLevelConstructor();
+        config.setLevelConstructor((server0, levelKey0, config0, _style)
+            -> constructor.createLevel(server0, levelKey0, config0, RuntimeLevel.Style.TEMPORARY));
 
         // Create the world.
-        RuntimeWorldHandle worldHandle = fantasy.getOrOpenPersistentWorld(id, config);
+        RuntimeLevelHandle worldHandle = fantasy.getOrOpenPersistentLevel(id, config);
 
-        dimensionView.setWorldHandle(worldHandle);
+        dimensionView.setLevelHandle(worldHandle);
         this.dimensionViews.put(dimensionKey, dimensionView);
 
         dimensionView.getLevel().noSave = true;
@@ -152,7 +152,7 @@ public class HistoryView {
                     if (oldLevel.players().isEmpty()) {
                         // Delete old dimension view
                         this.mod.unregisterDimensionView(oldLevel.dimension(), oldView);
-                        oldView.getWorldHandle().delete();
+                        oldView.getLevelHandle().delete();
                     }
                 }));
             }
