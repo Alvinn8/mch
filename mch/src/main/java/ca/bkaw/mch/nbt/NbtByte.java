@@ -10,6 +10,12 @@ public class NbtByte implements NbtTag {
 
     private byte value;
 
+    public NbtByte() {}
+
+    public NbtByte(byte value) {
+        this.value = value;
+    }
+
     @Override
     public byte getId() {
         return ID;

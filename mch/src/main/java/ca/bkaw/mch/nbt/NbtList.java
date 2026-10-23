@@ -21,6 +21,11 @@ public class NbtList implements NbtTag {
         this.value = new NbtTag[size];
     }
 
+    public NbtList(byte listTypeId, NbtTag[] value) {
+        this.listTypeId = listTypeId;
+        this.value = value;
+    }
+
     @Override
     public byte getId() {
         return ID;

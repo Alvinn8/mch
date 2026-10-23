@@ -12,6 +12,12 @@ public class NbtString implements NbtTag {
 
     private String value;
 
+    public NbtString() {}
+
+    public NbtString(String value) {
+        this.value = value;
+    }
+
     @Override
     public byte getId() {
         return ID;

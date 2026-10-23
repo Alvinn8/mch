@@ -7,6 +7,9 @@ include("end-to-end-tests")
 include("mch-viewer-fabric")
 project(":mch-viewer-fabric").projectDir = file("mch-viewer/fabric")
 
+include("mch-viewer-standalone")
+project(":mch-viewer-standalone").projectDir = file("mch-viewer/standalone")
+
 pluginManagement {
     repositories {
         maven {
