@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":mch-hub-server"))
     implementation("com.google.inject:guice:6.0.0")
     implementation("info.picocli:picocli:4.7.4")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.7")
     annotationProcessor("info.picocli:picocli-codegen:4.7.4")
 }
 
