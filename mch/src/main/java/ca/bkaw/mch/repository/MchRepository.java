@@ -18,6 +18,8 @@ import ca.bkaw.mch.util.StringPath;
 import ca.bkaw.mch.util.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -32,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MchRepository implements RepositoryAccess {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MchRepository.class);
+
     /**
      * The root of the repository. The ".mch" directory.
      */
@@ -53,31 +57,27 @@ public class MchRepository implements RepositoryAccess {
             }
             // This may be the old "mch" directory from mch version number <= 13.
             else if (Files.exists(dir.resolve("mch/configuration"))) {
-                System.out.println(
-                    "Warning: The mch repository directory 'mch' has been renamed to '.mch'. " +
-                        "Please rename it to avoid this warning. In folder: " +
-                        dir.toAbsolutePath()
-                );
+                warnOldDirectoryName(dir);
                 dir = dir.resolve("mch");
             }
             // See if it has been renamed to ".mch".
             else if (dir.getFileName().toString().equals("mch")
                 && Files.exists(dir.resolve("../.mch/configuration"))) {
-                System.out.println(
-                    "Warning: The mch repository directory 'mch' has been renamed to '.mch'. " +
-                        "Please rename it to avoid this warning. In folder: " +
-                        dir.getParent().toAbsolutePath()
-                );
+                warnOldDirectoryName(dir.toAbsolutePath().getParent());
                 dir = dir.resolve("../.mch").normalize();
             }
         } else if (dir.getFileName().toString().equals("mch")) {
-            System.out.println(
-                "Warning: The mch repository directory 'mch' has been renamed to '.mch'. " +
-                    "Please rename it to avoid this warning. In folder: " +
-                    dir.getParent().toAbsolutePath()
-            );
+            warnOldDirectoryName(dir.toAbsolutePath().getParent());
         }
         return new MchRepository(dir);
+    }
+
+    private static void warnOldDirectoryName(Path projectDir) {
+        LOGGER.warn(
+            "The mch repository directory 'mch' has been renamed to '.mch'. " +
+                "Please rename it to avoid this warning. In folder: {}",
+            projectDir.toAbsolutePath()
+        );
     }
 
     /**
