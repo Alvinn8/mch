@@ -3,7 +3,7 @@ plugins {
     id("net.fabricmc.fabric-loom") version "1.18-SNAPSHOT"
 }
 
-version = "0.1+${property("minecraft_version")}"
+version = "${property("mch_viewer_fabric_version")}+${property("minecraft_version")}"
 
 base {
     archivesName = "mch-viewer-fabric"
@@ -28,15 +28,14 @@ dependencies {
     // mch dependencies
     include(implementation(project(":mch"))!!)
     include(implementation(project(":mch-fs"))!!)
-    compileOnly("org.jetbrains:annotations:24.0.1")
+    compileOnly("org.jetbrains:annotations:${property("jetbrains_annotations_version")}")
 
     // include is not transitive, so the dependencies of mch need to be included
-    // explicitly. Keep these versions in sync with mch/build.gradle.kts
-    // TODO add gradle.properties for these?
-    include("com.github.luben:zstd-jni:1.5.5-5")
-    include("org.json:json:20240303")
-    include("commons-net:commons-net:3.9.0")
-    include("com.hierynomus:sshj:0.38.0")
+    // explicitly.
+    include("com.github.luben:zstd-jni:${property("zstd_version")}")
+    include("org.json:json:${property("org_json_version")}")
+    include("commons-net:commons-net:${property("commons_net_version")}")
+    include("com.hierynomus:sshj:${property("sshj_version")}")
 
     include(implementation("com.electronwill.night-config:core:${property("night_config_version")}")!!)
     include(implementation("com.electronwill.night-config:toml:${property("night_config_version")}")!!)

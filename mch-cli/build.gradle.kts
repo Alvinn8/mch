@@ -15,10 +15,12 @@ repositories {
 dependencies {
     implementation(project(":mch"))
     implementation(project(":mch-hub-server"))
-    implementation("com.google.inject:guice:6.0.0")
-    implementation("info.picocli:picocli:4.7.4")
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.7")
-    annotationProcessor("info.picocli:picocli-codegen:4.7.4")
+    compileOnly("org.jetbrains:annotations:${property("jetbrains_annotations_version")}")
+    implementation("com.google.inject:guice:${property("guice_version")}")
+    implementation("com.google.guava:guava:${property("guava_version")}")
+    implementation("info.picocli:picocli:${property("picocli_version")}")
+    runtimeOnly("org.slf4j:slf4j-simple:${property("slf4j_version")}")
+    annotationProcessor("info.picocli:picocli-codegen:${property("picocli_version")}")
 }
 
 tasks.compileJava {
@@ -27,4 +29,13 @@ tasks.compileJava {
 
 tasks.shadowJar {
     archiveFileName = "mch-cli-all-${version}.jar"
+}
+
+tasks.jar {
+    manifest {
+        // Allow zstd-jni to load its native library
+        // TODO when https://github.com/luben/zstd-jni/issues/371 is resolved
+        //  replace this with a more specific module name.
+        attributes("Enable-Native-Access" to "ALL-UNNAMED")
+    }
 }

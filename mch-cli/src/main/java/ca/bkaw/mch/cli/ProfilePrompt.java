@@ -1,6 +1,6 @@
 package ca.bkaw.mch.cli;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Scanner;
 

@@ -5,7 +5,7 @@ plugins {
 
 
 group = "ca.bkaw.mch"
-version = "0.1.2-SNAPSHOT"
+version = property("mch_version") as String
 
 tasks {
     runServer {

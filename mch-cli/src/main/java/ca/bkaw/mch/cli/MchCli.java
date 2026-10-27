@@ -25,6 +25,8 @@ import java.nio.file.Path;
 })
 public class MchCli {
     public static void main(String[] args) {
+        // Guice AOP is not used, disabling bytecode generation avoids sun.misc.Unsafe warnings
+        System.setProperty("guice_bytecode_gen_option", "DISABLED");
         int exitCode = run(Path.of("."), args);
         System.exit(exitCode);
     }

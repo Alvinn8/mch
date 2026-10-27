@@ -10,8 +10,8 @@ dependencies {
     implementation(project(":mch"))
     implementation(project(":mch-cli"))
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${property("junit_jupiter_version")}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${property("junit_jupiter_version")}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

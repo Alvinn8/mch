@@ -8,9 +8,11 @@ repositories {
     mavenCentral()
 }
 
+version = property("mch_fs_version") as String
+
 dependencies {
     implementation(project(":mch"))
-    compileOnly("org.jetbrains:annotations:24.0.1")
+    compileOnly("org.jetbrains:annotations:${property("jetbrains_annotations_version")}")
 }
 
 publishing {
