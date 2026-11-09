@@ -208,7 +208,7 @@ public class WorldReader {
                 continue;
             }
             // TODO repository-wide "mchignore"
-            if (name.contains(".sqlite")) {
+            if (name.contains(".sqlite") || name.endsWith(".tar.gz")) {
                 continue;
             }
             FileInfo.Metadata metadata = metadata(file);
